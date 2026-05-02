@@ -1,100 +1,28 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Cloud Debug</title>
+  <title>JS Check</title>
   <style>
     body {
       margin: 0;
-      padding: 20px;
       font-family: sans-serif;
-      background: #eaf5ff;
+      background: #eee;
     }
-    #debug {
-      background: #222;
-      color: #fff;
-      padding: 16px;
-      border-radius: 10px;
-      white-space: pre-wrap;
-      line-height: 1.6;
-      font-size: 14px;
+    #msg {
+      padding: 24px;
+      font-size: 32px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div id="debug">読み込み中...</div>
+  <div id="msg">読み込み中...</div>
 
   <script>
-    (function () {
-      var debugEl = document.getElementById("debug");
-      var params = new URLSearchParams(window.location.search);
-      var source = params.get("source") || "default";
-      var apiBaseUrl = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
-      var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source);
-
-      function setDebug(text) {
-        debugEl.textContent = text;
-      }
-
-      setDebug(
-        "JS起動OK\n" +
-        "source: " + source + "\n" +
-        "API_URL: " + apiUrl + "\n" +
-        "fetch開始..."
-      );
-
-      var controller = new AbortController();
-      var timeoutId = setTimeout(function () {
-        controller.abort();
-      }, 8000);
-
-      fetch(apiUrl, {
-        method: "GET",
-        cache: "no-store",
-        signal: controller.signal
-      })
-      .then(function (res) {
-        clearTimeout(timeoutId);
-        return res.text().then(function (text) {
-          return { status: res.status, text: text };
-        });
-      })
-      .then(function (result) {
-        var data;
-        try {
-          data = JSON.parse(result.text);
-        } catch (e) {
-          setDebug(
-            "JS起動OK\n" +
-            "fetch status: " + result.status + "\n" +
-            "JSON変換失敗\n\n" +
-            result.text.slice(0, 500)
-          );
-          return;
-        }
-
-        var count = (data.messages && data.messages.length) ? data.messages.length : 0;
-        var first = (count > 0 && data.messages[0].text) ? data.messages[0].text : "(none)";
-
-        setDebug(
-          "JS起動OK\n" +
-          "fetch status: " + result.status + "\n" +
-          "messages count: " + count + "\n" +
-          "first text: " + first + "\n" +
-          "error: " + (data.error ? "true" : "false") + "\n" +
-          "message: " + (data.message || "")
-        );
-      })
-      .catch(function (err) {
-        clearTimeout(timeoutId);
-        setDebug(
-          "JS起動OK\n" +
-          "fetch失敗\n" +
-          "error: " + err.message
-        );
-      });
-    })();
+    document.body.style.background = "#d8ffd8";
+    document.getElementById("msg").textContent = "JS OK";
   </script>
 </body>
 </html>

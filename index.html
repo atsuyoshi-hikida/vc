@@ -1,231 +1,100 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voice Cloud Debug</title>
-
-<style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: linear-gradient(
-      to bottom,
-      #eaf5ff 0%,
-      #d6ecff 60%,
-      #cfe8ff 100%
-    );
-    font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-  }
-
-  #stage {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-  }
-
-  .bubble {
-    position: absolute;
-    max-width: 260px;
-    padding: 14px 18px;
-    background: rgba(255,255,255,0.95);
-    border: 2px solid #444;
-    border-radius: 16px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    word-break: break-word;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  .bubble::after {
-    content: "";
-    position: absolute;
-    bottom: -14px;
-    left: 28px;
-    border-width: 14px 12px 0;
-    border-style: solid;
-    border-color: #444 transparent transparent;
-  }
-
-  #debug {
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    z-index: 99999;
-    width: min(92vw, 520px);
-    background: rgba(0, 0, 0, 0.78);
-    color: #fff;
-    padding: 12px 14px;
-    border-radius: 10px;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-  }
-
-  @media (max-width: 768px) {
-    * {
-      touch-action: none;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Cloud Debug</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: sans-serif;
+      background: #eaf5ff;
     }
-
     #debug {
-      font-size: 11px;
+      background: #222;
+      color: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      font-size: 14px;
     }
-  }
-</style>
+  </style>
 </head>
-
 <body>
-<div id="stage"></div>
-<div id="debug">読み込み中...</div>
+  <div id="debug">読み込み中...</div>
 
-<script>
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
-const params = new URLSearchParams(window.location.search);
-const source = params.get("source") || "default";
-const API_URL = `${API_BASE_URL}?source=${encodeURIComponent(source)}`;
+  <script>
+    (function () {
+      var debugEl = document.getElementById("debug");
+      var params = new URLSearchParams(window.location.search);
+      var source = params.get("source") || "default";
+      var apiBaseUrl = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
+      var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source);
 
-const UPDATE_INTERVAL = 5000;
-
-const LAYERS = 4;
-const SIZE = [0.8, 0.6, 0.5, 0.4];
-const OPACITY = [1.0, 0.75, 0.55, 0.35];
-const RADII = [110, 180, 260, 350];
-
-const FLOAT_RADIUS_BASE = 42;
-const FLOAT_SPEED_BASE  = 0.0018;
-const NOISE_RADIUS = 7;
-const NOISE_SPEED  = 0.008;
-
-const stage = document.getElementById("stage");
-const debugEl = document.getElementById("debug");
-let bubbles = {};
-let lastTime = performance.now();
-
-function setDebug(lines) {
-  debugEl.textContent = lines.join("\n");
-}
-
-/* 重なり緩和 */
-function relaxOverlap(list) {
-  const MIN_DIST = 160;
-  const POWER = 0.22;
-
-  for (let i = 0; i < list.length; i++) {
-    for (let j = i + 1; j < list.length; j++) {
-      const a = list[i];
-      const b = list[j];
-      const dx = a.baseX - b.baseX;
-      const dy = a.baseY - b.baseY;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist < MIN_DIST) {
-        const push = (MIN_DIST - dist) * POWER;
-        const nx = dx / (dist || 1);
-        const ny = dy / (dist || 1);
-
-        a.baseX += nx * push;
-        a.baseY += ny * push;
-        b.baseX -= nx * push;
-        b.baseY -= ny * push;
+      function setDebug(text) {
+        debugEl.textContent = text;
       }
-    }
-  }
-}
 
-/* 中心から拡散 */
-function disperseFromCenter(list, cx, cy) {
-  const POWER = 0.12;
+      setDebug(
+        "JS起動OK\n" +
+        "source: " + source + "\n" +
+        "API_URL: " + apiUrl + "\n" +
+        "fetch開始..."
+      );
 
-  list.forEach(b => {
-    const dx = b.baseX - cx;
-    const dy = b.baseY - cy;
-    const dist = Math.hypot(dx, dy) || 1;
-    const push = Math.max(0, 240 - dist) * POWER;
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () {
+        controller.abort();
+      }, 8000);
 
-    b.baseX += (dx / dist) * push;
-    b.baseY += (dy / dist) * push;
-  });
-}
+      fetch(apiUrl, {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal
+      })
+      .then(function (res) {
+        clearTimeout(timeoutId);
+        return res.text().then(function (text) {
+          return { status: res.status, text: text };
+        });
+      })
+      .then(function (result) {
+        var data;
+        try {
+          data = JSON.parse(result.text);
+        } catch (e) {
+          setDebug(
+            "JS起動OK\n" +
+            "fetch status: " + result.status + "\n" +
+            "JSON変換失敗\n\n" +
+            result.text.slice(0, 500)
+          );
+          return;
+        }
 
-/* アニメーション */
-function animate(now) {
-  const delta = Math.min((now - lastTime) / 16.666, 2);
-  lastTime = now;
+        var count = (data.messages && data.messages.length) ? data.messages.length : 0;
+        var first = (count > 0 && data.messages[0].text) ? data.messages[0].text : "(none)";
 
-  Object.values(bubbles).forEach(b => {
-    b.phase += b.floatSpeed * delta;
-    b.noisePhase += NOISE_SPEED * delta;
-
-    const fx = Math.cos(b.phase) * b.floatRadius;
-    const fy = Math.sin(b.phase) * b.floatRadius;
-    const nx = Math.cos(b.noisePhase * 1.7) * NOISE_RADIUS;
-    const ny = Math.sin(b.noisePhase * 1.3) * NOISE_RADIUS;
-
-    b.x += (b.baseX + fx + nx - b.x) * 0.04 * delta;
-    b.y += (b.baseY + fy + ny - b.y) * 0.04 * delta;
-
-    b.el.style.left = `${b.x}px`;
-    b.el.style.top  = `${b.y}px`;
-  });
-
-  requestAnimationFrame(animate);
-}
-
-/* 更新 */
-async function update() {
-  try {
-    setDebug([
-      "source: " + source,
-      "API_URL: " + API_URL,
-      "status: fetching..."
-    ]);
-
-    const res = await fetch(API_URL, { cache: "no-store" });
-    const raw = await res.text();
-
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (jsonError) {
-      setDebug([
-        "source: " + source,
-        "API_URL: " + API_URL,
-        "fetch status: " + res.status,
-        "JSON parse error: " + jsonError.message,
-        "raw response:",
-        raw.slice(0, 500)
-      ]);
-      return;
-    }
-
-    const messages = Array.isArray(data.messages) ? data.messages : [];
-
-    setDebug([
-      "source: " + source,
-      "API_URL: " + API_URL,
-      "fetch status: " + res.status,
-      "messages count: " + messages.length,
-      "error flag: " + (data.error ? "true" : "false"),
-      "message: " + (data.message || ""),
-      "first text: " + (messages[0] && messages[0].text ? messages[0].text : "(none)")
-    ]);
-
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const perLayer = Math.ceil(messages.length / LAYERS) || 1;
-
-    const bubbleList = [];
-    stage.innerHTML = "";
-    bubbles = {};
-
-    if (messages.length === 0) {
-      const el = document.createElement("div");
-      el.className = "bubble";
-      el.textContent = "messages: 0";
-      el.style.left = (cx - 80) + "px";
-      el.style.top = (cy - 30) + "px";
+        setDebug(
+          "JS起動OK\n" +
+          "fetch status: " + result.status + "\n" +
+          "messages count: " + count + "\n" +
+          "first text: " + first + "\n" +
+          "error: " + (data.error ? "true" : "false") + "\n" +
+          "message: " + (data.message || "")
+        );
+      })
+      .catch(function (err) {
+        clearTimeout(timeoutId);
+        setDebug(
+          "JS起動OK\n" +
+          "fetch失敗\n" +
+          "error: " + err.message
+        );
+      });
+    })();
+  </script>
+</body>
+</html>

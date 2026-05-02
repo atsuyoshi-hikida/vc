@@ -80,10 +80,11 @@ const SIZE = [0.82, 0.68, 0.58, 0.50];
 const OPACITY = [1.0, 0.82, 0.64, 0.46];
 const RADII = [120, 220, 320, 430];
 
-/* 動きは維持しつつ、少し滑らか寄り */
-const FLOAT_RADIUS_BASE = 30;
-const FLOAT_SPEED_BASE = 0.0016;
-const FOLLOW_SPEED = 0.055;
+/* 滑らかさ優先 */
+const FLOAT_RADIUS_BASE = 26;
+const FLOAT_SPEED_BASE = 0.00125;
+const FOLLOW_SPEED = 0.038;
+const LAYOUT_BLEND = 0.022;
 
 const stage = document.getElementById("stage");
 let bubbles = {};
@@ -121,8 +122,8 @@ function relaxOverlap(list) {
       for (let j = i + 1; j < list.length; j++) {
         const a = list[i];
         const b = list[j];
-        const dx = a.targetX - b.targetX;
-        const dy = a.targetY - b.targetY;
+        const dx = a.layoutX - b.layoutX;
+        const dy = a.layoutY - b.layoutY;
         const dist = Math.hypot(dx, dy);
 
         if (dist < MIN_DIST) {
@@ -130,10 +131,10 @@ function relaxOverlap(list) {
           const nx = dx / (dist || 1);
           const ny = dy / (dist || 1);
 
-          a.targetX += nx * push;
-          a.targetY += ny * push;
-          b.targetX -= nx * push;
-          b.targetY -= ny * push;
+          a.layoutX += nx * push;
+          a.layoutY += ny * push;
+          b.layoutX -= nx * push;
+          b.layoutY -= ny * push;
         }
       }
     }
@@ -145,8 +146,8 @@ function clampToStage(list) {
   const h = window.innerHeight;
 
   list.forEach(b => {
-    b.targetX = Math.max(12, Math.min(w - 280, b.targetX));
-    b.targetY = Math.max(12, Math.min(h - 90, b.targetY));
+    b.layoutX = Math.max(12, Math.min(w - 280, b.layoutX));
+    b.layoutY = Math.max(12, Math.min(h - 90, b.layoutY));
   });
 }
 
@@ -166,10 +167,12 @@ function createBubble(item, zIndex) {
     key: item.key,
     text: item.text,
     el,
-    x: item.targetX,
-    y: item.targetY,
-    targetX: item.targetX,
-    targetY: item.targetY,
+    x: item.layoutX,
+    y: item.layoutY,
+    targetX: item.layoutX,
+    targetY: item.layoutY,
+    layoutX: item.layoutX,
+    layoutY: item.layoutY,
     scale: item.scale,
     opacity: item.opacity,
     phase: item.phase,
@@ -200,8 +203,8 @@ function syncBubbles(layout, messagesLength) {
       const b = bubbles[item.key];
       b.text = item.text;
       b.el.textContent = item.text;
-      b.targetX = item.targetX;
-      b.targetY = item.targetY;
+      b.layoutX = item.layoutX;
+      b.layoutY = item.layoutY;
       b.scale = item.scale;
       b.opacity = item.opacity;
       b.el.style.opacity = item.opacity;
@@ -233,8 +236,8 @@ function buildLayout(messages) {
       layer,
       scale: SIZE[layer],
       opacity: OPACITY[layer],
-      targetX: cx + Math.cos(angle) * radius,
-      targetY: cy + Math.sin(angle) * radius,
+      layoutX: cx + Math.cos(angle) * radius,
+      layoutY: cy + Math.sin(angle) * radius,
       phase: seeded(seed + 3) * Math.PI * 2,
       floatRadius: FLOAT_RADIUS_BASE * (0.9 + seeded(seed + 4) * 0.25),
       floatSpeed: FLOAT_SPEED_BASE * (0.9 + seeded(seed + 5) * 0.2)
@@ -251,16 +254,22 @@ function animate(now) {
   const delta = Math.min((now - lastTime) / 16.666, 2);
   lastTime = now;
 
-  const smooth = 1 - Math.pow(1 - FOLLOW_SPEED, delta);
+  const followSmooth = 1 - Math.pow(1 - FOLLOW_SPEED, delta);
+  const layoutSmooth = 1 - Math.pow(1 - LAYOUT_BLEND, delta);
 
   Object.values(bubbles).forEach(b => {
-    b.phase += b.floatSpeed * delta;
+    /* レイアウト更新で急に飛ばないように、まず target が layout にじわっと寄る */
+    b.targetX += (b.layoutX - b.targetX) * layoutSmooth;
+    b.targetY += (b.layoutY - b.targetY) * layoutSmooth;
 
+    /* ふわっと円運動 */
+    b.phase += b.floatSpeed * delta;
     const fx = Math.cos(b.phase) * b.floatRadius;
     const fy = Math.sin(b.phase) * b.floatRadius;
 
-    b.x += (b.targetX + fx - b.x) * smooth;
-    b.y += (b.targetY + fy - b.y) * smooth;
+    /* 実位置はさらにゆっくり追いかける */
+    b.x += (b.targetX + fx - b.x) * followSmooth;
+    b.y += (b.targetY + fy - b.y) * followSmooth;
 
     renderBubbleTransform(b);
   });
@@ -285,7 +294,6 @@ async function update() {
 update();
 requestAnimationFrame(animate);
 setInterval(update, UPDATE_INTERVAL);
-
 window.addEventListener("resize", update);
 </script>
 </body>

@@ -75,10 +75,10 @@ const SIZE = [0.82, 0.68, 0.58, 0.50];
 const OPACITY = [1.0, 0.82, 0.64, 0.46];
 const RADII = [120, 220, 320, 430];
 
-/* 少しだけ動く */
-const FLOAT_RADIUS_BASE = 8;
-const FLOAT_SPEED_BASE = 0.00035;
-const FOLLOW_SPEED = 0.03;
+/* 少しだけ動く → もう少し動く */
+const FLOAT_RADIUS_BASE = 14;
+const FLOAT_SPEED_BASE = 0.00055;
+const FOLLOW_SPEED = 0.04;
 
 const stage = document.getElementById("stage");
 let bubbles = {};
@@ -277,3 +277,4 @@ setInterval(update, UPDATE_INTERVAL);
 </script>
 </body>
 </html>
+``

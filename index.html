@@ -62,7 +62,11 @@
 <div id="stage"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
+const params = new URLSearchParams(window.location.search);
+const source = params.get("source") || "default";
+const API_URL = `${API_BASE_URL}?source=${encodeURIComponent(source)}`;
+
 const UPDATE_INTERVAL = 5000;
 
 const LAYERS = 4;

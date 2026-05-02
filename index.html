@@ -35,7 +35,7 @@
     word-break: break-word;
     pointer-events: none;
     user-select: none;
-    will-change: transform;
+    will-change: left, top, transform;
   }
 
   .bubble::after {
@@ -46,20 +46,6 @@
     border-width: 14px 12px 0;
     border-style: solid;
     border-color: #444 transparent transparent;
-  }
-
-  #debug {
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    z-index: 99999;
-    background: rgba(0,0,0,0.78);
-    color: #fff;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
   }
 
   @media (max-width: 768px) {
@@ -75,7 +61,6 @@
 
 <body>
 <div id="stage"></div>
-<div id="debug">読み込み中...</div>
 
 <script>
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
@@ -90,18 +75,36 @@ const SIZE = [0.82, 0.68, 0.58, 0.50];
 const OPACITY = [1.0, 0.82, 0.64, 0.46];
 const RADII = [120, 220, 320, 430];
 
-/* ゆっくり・小刻み揺れなし */
-const FLOAT_RADIUS_BASE = 12;
-const FLOAT_SPEED_BASE = 0.00055;
+/* 少しだけ動く */
+const FLOAT_RADIUS_BASE = 8;
+const FLOAT_SPEED_BASE = 0.00035;
+const FOLLOW_SPEED = 0.03;
 
 const stage = document.getElementById("stage");
-const debug = document.getElementById("debug");
-
-let bubbles = [];
+let bubbles = {};
 let lastTime = performance.now();
 
-function setDebug(text) {
-  debug.textContent = text;
+function hashString(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+function seeded(seed) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function buildKeyList(messages) {
+  const counts = {};
+  return messages.map(msg => {
+    const text = String(msg.text || "");
+    counts[text] = (counts[text] || 0) + 1;
+    return text + "__" + counts[text];
+  });
 }
 
 function relaxOverlap(list) {
@@ -113,8 +116,8 @@ function relaxOverlap(list) {
       for (let j = i + 1; j < list.length; j++) {
         const a = list[i];
         const b = list[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
+        const dx = a.targetX - b.targetX;
+        const dy = a.targetY - b.targetY;
         const dist = Math.hypot(dx, dy);
 
         if (dist < MIN_DIST) {
@@ -122,10 +125,10 @@ function relaxOverlap(list) {
           const nx = dx / (dist || 1);
           const ny = dy / (dist || 1);
 
-          a.x += nx * push;
-          a.y += ny * push;
-          b.x -= nx * push;
-          b.y -= ny * push;
+          a.targetX += nx * push;
+          a.targetY += ny * push;
+          b.targetX -= nx * push;
+          b.targetY -= ny * push;
         }
       }
     }
@@ -137,100 +140,140 @@ function clampToStage(list) {
   const h = window.innerHeight;
 
   list.forEach(b => {
-    b.x = Math.max(12, Math.min(w - 280, b.x));
-    b.y = Math.max(12, Math.min(h - 90, b.y));
+    b.targetX = Math.max(12, Math.min(w - 280, b.targetX));
+    b.targetY = Math.max(12, Math.min(h - 90, b.targetY));
   });
+}
+
+function createBubble(item, zIndex) {
+  const el = document.createElement("div");
+  el.className = "bubble";
+  el.textContent = item.text;
+  el.style.opacity = item.opacity;
+  el.style.zIndex = String(zIndex);
+  el.style.transform = `scale(${item.scale})`;
+  stage.appendChild(el);
+
+  return {
+    key: item.key,
+    text: item.text,
+    el,
+    x: item.targetX,
+    y: item.targetY,
+    targetX: item.targetX,
+    targetY: item.targetY,
+    scale: item.scale,
+    opacity: item.opacity,
+    phase: item.phase,
+    floatRadius: item.floatRadius,
+    floatSpeed: item.floatSpeed
+  };
+}
+
+function syncBubbles(layout, messagesLength) {
+  const nextKeys = new Set(layout.map(item => item.key));
+
+  Object.keys(bubbles).forEach(key => {
+    if (!nextKeys.has(key)) {
+      bubbles[key].el.remove();
+      delete bubbles[key];
+    }
+  });
+
+  layout.forEach((item, i) => {
+    const zIndex = messagesLength - i;
+
+    if (!bubbles[item.key]) {
+      bubbles[item.key] = createBubble(item, zIndex);
+    } else {
+      const b = bubbles[item.key];
+      b.text = item.text;
+      b.el.textContent = item.text;
+      b.targetX = item.targetX;
+      b.targetY = item.targetY;
+      b.scale = item.scale;
+      b.opacity = item.opacity;
+      b.el.style.opacity = item.opacity;
+      b.el.style.zIndex = String(zIndex);
+      b.floatRadius = item.floatRadius;
+      b.floatSpeed = item.floatSpeed;
+    }
+  });
+}
+
+function buildLayout(messages) {
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const perLayer = Math.ceil(messages.length / LAYERS) || 1;
+  const keys = buildKeyList(messages);
+
+  const list = messages.map((msg, i) => {
+    const text = String(msg.text || "");
+    const key = keys[i];
+    const layer = Math.min(Math.floor(i / perLayer), LAYERS - 1);
+
+    const seed = hashString(key);
+    const angle = seeded(seed + 1) * Math.PI * 2;
+    const radius = RADII[layer] * (0.92 + seeded(seed + 2) * 0.16);
+
+    return {
+      key,
+      text,
+      layer,
+      scale: SIZE[layer],
+      opacity: OPACITY[layer],
+      targetX: cx + Math.cos(angle) * radius,
+      targetY: cy + Math.sin(angle) * radius,
+      phase: seeded(seed + 3) * Math.PI * 2,
+      floatRadius: FLOAT_RADIUS_BASE * (0.9 + seeded(seed + 4) * 0.25),
+      floatSpeed: FLOAT_SPEED_BASE * (0.9 + seeded(seed + 5) * 0.2)
+    };
+  });
+
+  relaxOverlap(list);
+  clampToStage(list);
+
+  return list;
 }
 
 function animate(now) {
   const delta = Math.min((now - lastTime) / 16.666, 2);
   lastTime = now;
 
-  bubbles.forEach(b => {
+  Object.values(bubbles).forEach(b => {
     b.phase += b.floatSpeed * delta;
 
     const fx = Math.cos(b.phase) * b.floatRadius;
     const fy = Math.sin(b.phase) * b.floatRadius;
 
-    b.el.style.transform = `translate(${fx}px, ${fy}px) scale(${b.scale})`;
+    b.x += (b.targetX + fx - b.x) * FOLLOW_SPEED * delta;
+    b.y += (b.targetY + fy - b.y) * FOLLOW_SPEED * delta;
+
+    b.el.style.left = `${b.x}px`;
+    b.el.style.top = `${b.y}px`;
+    b.el.style.transform = `scale(${b.scale})`;
   });
 
   requestAnimationFrame(animate);
 }
 
-async function render() {
+async function update() {
   try {
-    setDebug("fetch中...\n" + API_URL);
-
     const res = await fetch(API_URL, { cache: "no-store" });
     const data = await res.json();
     const messages = Array.isArray(data.messages) ? data.messages : [];
 
-    setDebug(
-      "status: " + res.status + "\n" +
-      "source: " + source + "\n" +
-      "messages: " + messages.length
-    );
-
-    stage.innerHTML = "";
-    bubbles = [];
-
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const perLayer = Math.ceil(messages.length / LAYERS) || 1;
-
-    const bubbleList = [];
-
-    messages.forEach((msg, i) => {
-      const layer = Math.min(Math.floor(i / perLayer), LAYERS - 1);
-      const count = i % perLayer;
-
-      const angle =
-        (i / Math.max(messages.length, 1)) * Math.PI * 2 +
-        (Math.random() - 0.5) * 0.22;
-
-      const radius =
-        RADII[layer] * (0.95 + Math.random() * 0.12) +
-        count * 20;
-
-      bubbleList.push({
-        text: msg.text || "",
-        layer,
-        x: cx + Math.cos(angle) * radius,
-        y: cy + Math.sin(angle) * radius
-      });
-    });
-
-    relaxOverlap(bubbleList);
-    clampToStage(bubbleList);
-
-    bubbleList.forEach((b, i) => {
-      const el = document.createElement("div");
-      el.className = "bubble";
-      el.textContent = b.text;
-      el.style.left = `${b.x}px`;
-      el.style.top = `${b.y}px`;
-      el.style.opacity = OPACITY[b.layer];
-      el.style.zIndex = String(messages.length - i);
-      stage.appendChild(el);
-
-      bubbles.push({
-        el,
-        scale: SIZE[b.layer],
-        phase: Math.random() * Math.PI * 2,
-        floatRadius: FLOAT_RADIUS_BASE * (0.9 + Math.random() * 0.2),
-        floatSpeed: FLOAT_SPEED_BASE
-      });
-    });
+    const layout = buildLayout(messages);
+    syncBubbles(layout, messages.length);
 
   } catch (error) {
-    setDebug("エラー: " + error.message);
+    console.error("データ取得エラー:", error);
   }
 }
 
-render();
+update();
 requestAnimationFrame(animate);
-setInterval(render, UPDATE_INTERVAL);
+setInterval(update, UPDATE_INTERVAL);
 </script>
 </body>
 </html>

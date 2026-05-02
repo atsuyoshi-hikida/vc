@@ -74,11 +74,10 @@ const SIZE = [0.8, 0.6, 0.5, 0.4];
 const OPACITY = [1.0, 0.75, 0.55, 0.35];
 const RADII = [110, 180, 260, 350];
 
-/* ここだけ少し穏やかに */
-const FLOAT_RADIUS_BASE = 36;
-const FLOAT_SPEED_BASE  = 0.0015;
-const NOISE_RADIUS = 2;
-const NOISE_SPEED  = 0.004;
+const FLOAT_RADIUS_BASE = 42;
+const FLOAT_SPEED_BASE  = 0.0018;
+const NOISE_RADIUS = 7;
+const NOISE_SPEED  = 0.008;
 
 const stage = document.getElementById("stage");
 let bubbles = {};
@@ -140,8 +139,8 @@ function animate(now) {
     const nx = Math.cos(b.noisePhase * 1.7) * NOISE_RADIUS;
     const ny = Math.sin(b.noisePhase * 1.3) * NOISE_RADIUS;
 
-    b.x += (b.baseX + fx + nx - b.x) * 0.03 * delta;
-    b.y += (b.baseY + fy + ny - b.y) * 0.03 * delta;
+    b.x += (b.baseX + fx + nx - b.x) * 0.04 * delta;
+    b.y += (b.baseY + fy + ny - b.y) * 0.04 * delta;
 
     b.el.style.left = `${b.x}px`;
     b.el.style.top  = `${b.y}px`;
@@ -197,28 +196,3 @@ async function update() {
         y: baseY,
         baseX,
         baseY,
-        phase: Math.random() * Math.PI * 2,
-        noisePhase: Math.random() * Math.PI * 2,
-        floatRadius: FLOAT_RADIUS_BASE * (0.85 + Math.random() * 0.3),
-        floatSpeed: FLOAT_SPEED_BASE
-      });
-    });
-
-    relaxOverlap(bubbleList);
-    disperseFromCenter(bubbleList, cx, cy);
-
-    bubbleList.forEach((b, i) => {
-      bubbles[`bubble_${i}`] = b;
-    });
-
-  } catch (error) {
-    console.error("データ取得エラー:", error);
-  }
-}
-
-update();
-requestAnimationFrame(animate);
-setInterval(update, UPDATE_INTERVAL);
-</script>
-</body>
-</html>

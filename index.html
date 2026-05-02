@@ -22,10 +22,13 @@
     position: relative;
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
   }
 
   .bubble {
     position: absolute;
+    top: 0;
+    left: 0;
     max-width: 260px;
     padding: 14px 18px;
     background: rgba(255,255,255,0.95);
@@ -35,7 +38,9 @@
     word-break: break-word;
     pointer-events: none;
     user-select: none;
-    will-change: left, top, transform;
+    will-change: transform;
+    transform-origin: top left;
+    backface-visibility: hidden;
   }
 
   .bubble::after {
@@ -75,10 +80,10 @@ const SIZE = [0.82, 0.68, 0.58, 0.50];
 const OPACITY = [1.0, 0.82, 0.64, 0.46];
 const RADII = [120, 220, 320, 430];
 
-/* さらに動く + さらに速く */
+/* 動きは維持しつつ、少し滑らか寄り */
 const FLOAT_RADIUS_BASE = 30;
 const FLOAT_SPEED_BASE = 0.0016;
-const FOLLOW_SPEED = 0.075;
+const FOLLOW_SPEED = 0.055;
 
 const stage = document.getElementById("stage");
 let bubbles = {};
@@ -145,16 +150,19 @@ function clampToStage(list) {
   });
 }
 
+function renderBubbleTransform(b) {
+  b.el.style.transform = `translate3d(${b.x}px, ${b.y}px, 0) scale(${b.scale})`;
+}
+
 function createBubble(item, zIndex) {
   const el = document.createElement("div");
   el.className = "bubble";
   el.textContent = item.text;
   el.style.opacity = item.opacity;
   el.style.zIndex = String(zIndex);
-  el.style.transform = `scale(${item.scale})`;
   stage.appendChild(el);
 
-  return {
+  const bubble = {
     key: item.key,
     text: item.text,
     el,
@@ -168,6 +176,9 @@ function createBubble(item, zIndex) {
     floatRadius: item.floatRadius,
     floatSpeed: item.floatSpeed
   };
+
+  renderBubbleTransform(bubble);
+  return bubble;
 }
 
 function syncBubbles(layout, messagesLength) {
@@ -240,18 +251,18 @@ function animate(now) {
   const delta = Math.min((now - lastTime) / 16.666, 2);
   lastTime = now;
 
+  const smooth = 1 - Math.pow(1 - FOLLOW_SPEED, delta);
+
   Object.values(bubbles).forEach(b => {
     b.phase += b.floatSpeed * delta;
 
     const fx = Math.cos(b.phase) * b.floatRadius;
     const fy = Math.sin(b.phase) * b.floatRadius;
 
-    b.x += (b.targetX + fx - b.x) * FOLLOW_SPEED * delta;
-    b.y += (b.targetY + fy - b.y) * FOLLOW_SPEED * delta;
+    b.x += (b.targetX + fx - b.x) * smooth;
+    b.y += (b.targetY + fy - b.y) * smooth;
 
-    b.el.style.left = `${b.x}px`;
-    b.el.style.top = `${b.y}px`;
-    b.el.style.transform = `scale(${b.scale})`;
+    renderBubbleTransform(b);
   });
 
   requestAnimationFrame(animate);
@@ -274,6 +285,8 @@ async function update() {
 update();
 requestAnimationFrame(animate);
 setInterval(update, UPDATE_INTERVAL);
+
+window.addEventListener("resize", update);
 </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voice Cloud</title>
+<title>Voice Cloud Debug</title>
 
 <style>
   body {
@@ -47,6 +47,23 @@
     border-color: #444 transparent transparent;
   }
 
+  #debug {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 99999;
+    width: min(92vw, 520px);
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  }
+
   @media (max-width: 768px) {
     * {
       touch-action: none;
@@ -54,12 +71,17 @@
       -webkit-user-select: none;
       user-select: none;
     }
+
+    #debug {
+      font-size: 11px;
+    }
   }
 </style>
 </head>
 
 <body>
 <div id="stage"></div>
+<div id="debug">読み込み中...</div>
 
 <script>
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
@@ -80,8 +102,13 @@ const NOISE_RADIUS = 7;
 const NOISE_SPEED  = 0.008;
 
 const stage = document.getElementById("stage");
+const debugEl = document.getElementById("debug");
 let bubbles = {};
 let lastTime = performance.now();
+
+function setDebug(lines) {
+  debugEl.textContent = lines.join("\n");
+}
 
 /* 重なり緩和 */
 function relaxOverlap(list) {
@@ -152,9 +179,41 @@ function animate(now) {
 /* 更新 */
 async function update() {
   try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
+    setDebug([
+      "source: " + source,
+      "API_URL: " + API_URL,
+      "status: fetching..."
+    ]);
+
+    const res = await fetch(API_URL, { cache: "no-store" });
+    const raw = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (jsonError) {
+      setDebug([
+        "source: " + source,
+        "API_URL: " + API_URL,
+        "fetch status: " + res.status,
+        "JSON parse error: " + jsonError.message,
+        "raw response:",
+        raw.slice(0, 500)
+      ]);
+      return;
+    }
+
     const messages = Array.isArray(data.messages) ? data.messages : [];
+
+    setDebug([
+      "source: " + source,
+      "API_URL: " + API_URL,
+      "fetch status: " + res.status,
+      "messages count: " + messages.length,
+      "error flag: " + (data.error ? "true" : "false"),
+      "message: " + (data.message || ""),
+      "first text: " + (messages[0] && messages[0].text ? messages[0].text : "(none)")
+    ]);
 
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
@@ -164,35 +223,9 @@ async function update() {
     stage.innerHTML = "";
     bubbles = {};
 
-    messages.forEach((msg, i) => {
-      const layer = Math.min(Math.floor(i / perLayer), LAYERS - 1);
-      const count = i % perLayer;
-
-      const angle =
-        (i / Math.max(messages.length, 1)) * Math.PI * 2 +
-        (Math.random() - 0.5) * 0.45;
-
-      const radius =
-        RADII[layer] * (0.9 + Math.random() * 0.24) +
-        count * 18;
-
-      const baseX = cx + Math.cos(angle) * radius;
-      const baseY = cy + Math.sin(angle) * radius;
-
+    if (messages.length === 0) {
       const el = document.createElement("div");
       el.className = "bubble";
-      el.textContent = msg.text || "";
-      el.style.transform = `scale(${SIZE[layer]})`;
-      el.style.opacity = OPACITY[layer];
-
-      /* 新しい投稿を前面、古い投稿を背面 */
-      el.style.zIndex = String(messages.length - i);
-
-      stage.appendChild(el);
-
-      bubbleList.push({
-        el,
-        x: baseX,
-        y: baseY,
-        baseX,
-        baseY,
+      el.textContent = "messages: 0";
+      el.style.left = (cx - 80) + "px";
+      el.style.top = (cy - 30) + "px";

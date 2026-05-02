@@ -8,19 +8,24 @@
 <style>
   body {
     margin: 0;
-    padding: 24px;
-    background: #eaf5ff;
+    overflow: hidden;
+    background: linear-gradient(
+      to bottom,
+      #eaf5ff 0%,
+      #d6ecff 60%,
+      #cfe8ff 100%
+    );
     font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
   }
 
   #stage {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: flex-start;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
   }
 
   .bubble {
+    position: absolute;
     max-width: 260px;
     padding: 14px 18px;
     background: rgba(255,255,255,0.95);
@@ -28,24 +33,48 @@
     border-radius: 16px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     word-break: break-word;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -14px;
+    left: 28px;
+    border-width: 14px 12px 0;
+    border-style: solid;
+    border-color: #444 transparent transparent;
   }
 
   #debug {
-    margin-bottom: 20px;
-    padding: 12px 14px;
-    border-radius: 10px;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 99999;
     background: rgba(0,0,0,0.78);
     color: #fff;
-    font-size: 13px;
-    line-height: 1.6;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.5;
     white-space: pre-wrap;
+  }
+
+  @media (max-width: 768px) {
+    * {
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
   }
 </style>
 </head>
 
 <body>
-<div id="debug">読み込み中...</div>
 <div id="stage"></div>
+<div id="debug">読み込み中...</div>
 
 <script>
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
@@ -53,40 +82,116 @@ const params = new URLSearchParams(window.location.search);
 const source = params.get("source") || "default";
 const API_URL = `${API_BASE_URL}?source=${encodeURIComponent(source)}`;
 
+const LAYERS = 4;
+const SIZE = [0.82, 0.68, 0.58, 0.50];
+const OPACITY = [1.0, 0.82, 0.64, 0.46];
+const RADII = [120, 220, 320, 430];
+
 const stage = document.getElementById("stage");
 const debug = document.getElementById("debug");
 
+function setDebug(text) {
+  debug.textContent = text;
+}
+
+function relaxOverlap(list) {
+  const MIN_DIST = 170;
+  const POWER = 0.28;
+
+  for (let loop = 0; loop < 8; loop++) {
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i];
+        const b = list[j];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < MIN_DIST) {
+          const push = (MIN_DIST - dist) * POWER;
+          const nx = dx / (dist || 1);
+          const ny = dy / (dist || 1);
+
+          a.x += nx * push;
+          a.y += ny * push;
+          b.x -= nx * push;
+          b.y -= ny * push;
+        }
+      }
+    }
+  }
+}
+
+function clampToStage(list) {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  list.forEach(b => {
+    b.x = Math.max(12, Math.min(w - 280, b.x));
+    b.y = Math.max(12, Math.min(h - 90, b.y));
+  });
+}
+
 async function render() {
   try {
-    debug.textContent = "fetch中...\n" + API_URL;
+    setDebug("fetch中...\n" + API_URL);
 
     const res = await fetch(API_URL, { cache: "no-store" });
     const data = await res.json();
     const messages = Array.isArray(data.messages) ? data.messages : [];
 
-    debug.textContent =
+    setDebug(
       "status: " + res.status + "\n" +
       "source: " + source + "\n" +
-      "messages: " + messages.length;
+      "messages: " + messages.length
+    );
 
     stage.innerHTML = "";
+    stage.appendChild(debug);
+
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const perLayer = Math.ceil(messages.length / LAYERS) || 1;
+
+    const bubbleList = [];
 
     messages.forEach((msg, i) => {
+      const layer = Math.min(Math.floor(i / perLayer), LAYERS - 1);
+      const count = i % perLayer;
+
+      const angle =
+        (i / Math.max(messages.length, 1)) * Math.PI * 2 +
+        (Math.random() - 0.5) * 0.22;
+
+      const radius =
+        RADII[layer] * (0.95 + Math.random() * 0.12) +
+        count * 20;
+
+      bubbleList.push({
+        text: msg.text || "",
+        layer,
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius
+      });
+    });
+
+    relaxOverlap(bubbleList);
+    clampToStage(bubbleList);
+
+    bubbleList.forEach((b, i) => {
       const el = document.createElement("div");
       el.className = "bubble";
-      el.textContent = (i + 1) + ". " + (msg.text || "");
+      el.textContent = b.text;
+      el.style.left = `${b.x}px`;
+      el.style.top = `${b.y}px`;
+      el.style.transform = `scale(${SIZE[b.layer]})`;
+      el.style.opacity = OPACITY[b.layer];
+      el.style.zIndex = String(messages.length - i);
       stage.appendChild(el);
     });
 
-    if (messages.length === 0) {
-      const el = document.createElement("div");
-      el.className = "bubble";
-      el.textContent = "messages が 0 件です";
-      stage.appendChild(el);
-    }
-
   } catch (error) {
-    debug.textContent = "エラー: " + error.message;
+    setDebug("エラー: " + error.message);
   }
 }
 

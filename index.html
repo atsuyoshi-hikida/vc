@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voice Cloud</title>
+<title>Voice Cloud Debug</title>
 
 <style>
   body {
@@ -62,6 +62,21 @@
     object-fit: contain;
   }
 
+  #debug {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 99999;
+    background: rgba(0,0,0,0.78);
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-width: 80vw;
+  }
+
   @media (max-width: 768px) {
     * {
       touch-action: none;
@@ -75,6 +90,7 @@
 
 <body>
 <div id="stage"></div>
+<div id="debug">読み込み中...</div>
 
 <script>
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwVCvpcSZTDfiKC-dRwm5_zEzd8ndvBM4RiRsT13Tv0tWfGzEbtzRnZ3Jx8RPFwKxJD/exec";
@@ -91,16 +107,21 @@ const SIZE = [0.82, 0.68, 0.58, 0.50];
 const OPACITY = [1.0, 0.82, 0.64, 0.46];
 const RADII = [120, 220, 320, 430];
 
-/* 滑らかさ優先 */
 const FLOAT_RADIUS_BASE = 26;
 const FLOAT_SPEED_BASE = 0.00125;
 const FOLLOW_SPEED = 0.038;
 const LAYOUT_BLEND = 0.022;
 
 const stage = document.getElementById("stage");
+const debugEl = document.getElementById("debug");
+
 let bubbles = {};
 let emojiMap = {};
 let lastTime = performance.now();
+
+function setDebug(lines) {
+  debugEl.textContent = lines.join("\n");
+}
 
 function hashString(str) {
   let h = 0;
@@ -306,25 +327,64 @@ function clearBubbles() {
   bubbles = {};
 }
 
+function renderFirstBubbleFallback(text) {
+  const old = document.getElementById("fallbackBubble");
+  if (old) old.remove();
+
+  const el = document.createElement("div");
+  el.id = "fallbackBubble";
+  el.className = "bubble";
+  el.style.zIndex = "9999";
+  el.style.transform = "translate3d(20px, 80px, 0) scale(1)";
+  el.innerHTML = renderTextWithEmoji(text);
+  stage.appendChild(el);
+}
+
 async function update() {
   try {
+    setDebug([
+      `source: ${source}`,
+      `session: ${session}`,
+      `fetch: ${API_URL}`
+    ]);
+
     const res = await fetch(API_URL, { cache: "no-store" });
     const data = await res.json();
 
     const active = !!data.active;
     const messages = Array.isArray(data.messages) ? data.messages : [];
+    const reason = data.reason || "";
     emojiMap = (data.emojiMap && typeof data.emojiMap === "object") ? data.emojiMap : {};
+
+    setDebug([
+      `source: ${source}`,
+      `session: ${session}`,
+      `status: ${res.status}`,
+      `active: ${active}`,
+      `messages: ${messages.length}`,
+      `reason: ${reason}`,
+      `emoji keys: ${Object.keys(emojiMap).length}`
+    ]);
 
     if (!active) {
       clearBubbles();
       return;
     }
 
+    if (messages.length > 0) {
+      renderFirstBubbleFallback(messages[0].text || "(first message)");
+    }
+
     const layout = buildLayout(messages);
     syncBubbles(layout, messages.length);
 
   } catch (error) {
-    console.error("データ取得エラー:", error);
+    setDebug([
+      `source: ${source}`,
+      `session: ${session}`,
+      `ERROR: ${error.message}`
+    ]);
+    clearBubbles();
   }
 }
 

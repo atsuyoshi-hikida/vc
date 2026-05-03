@@ -30,17 +30,19 @@
     }
 
     @keyframes skyCycle {
+      /* 夜明け */
       0% {
         background:
           linear-gradient(
             to bottom,
-            #8ea6c9 0%,
-            #d8b4a0 45%,
-            #f7d9b8 100%
+            #7d93b8 0%,
+            #cfa58f 45%,
+            #f4cfad 100%
           );
       }
 
-      15% {
+      /* 朝 */
+      14% {
         background:
           linear-gradient(
             to bottom,
@@ -50,7 +52,8 @@
           );
       }
 
-      35% {
+      /* 昼 */
+      34% {
         background:
           linear-gradient(
             to bottom,
@@ -60,7 +63,8 @@
           );
       }
 
-      55% {
+      /* 午後 */
+      54% {
         background:
           linear-gradient(
             to bottom,
@@ -70,35 +74,119 @@
           );
       }
 
-      72% {
+      /* 夕方 */
+      70% {
         background:
           linear-gradient(
             to bottom,
-            #5a86c9 0%,
-            #e0a07a 52%,
-            #ffd5a6 100%
+            #4f78be 0%,
+            #d89373 52%,
+            #ffc995 100%
           );
       }
 
-      85% {
+      /* 夜へ入り始める */
+      78% {
         background:
           linear-gradient(
             to bottom,
-            #0f1830 0%,
-            #1a2d53 50%,
-            #2f456c 100%
+            #182441 0%,
+            #213764 52%,
+            #32496f 100%
           );
       }
 
+      /* 深い夜（少し長め） */
+      86% {
+        background:
+          linear-gradient(
+            to bottom,
+            #060c1b 0%,
+            #0d1730 50%,
+            #1a2844 100%
+          );
+      }
+
+      94% {
+        background:
+          linear-gradient(
+            to bottom,
+            #060c1b 0%,
+            #0d1730 50%,
+            #1a2844 100%
+          );
+      }
+
+      /* 夜明け前 */
       100% {
         background:
           linear-gradient(
             to bottom,
-            #8ea6c9 0%,
-            #d8b4a0 45%,
-            #f7d9b8 100%
+            #7d93b8 0%,
+            #cfa58f 45%,
+            #f4cfad 100%
           );
       }
+    }
+
+    /* 星と流れ星 */
+    #stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0;
+      animation: starsVisibility 1200s linear infinite;
+    }
+
+    @keyframes starsVisibility {
+      0%   { opacity: 0; }
+      72%  { opacity: 0; }
+      80%  { opacity: 0.35; }
+      86%  { opacity: 0.95; }
+      94%  { opacity: 0.95; }
+      100% { opacity: 0; }
+    }
+
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 0 8px rgba(255,255,255,0.55);
+      animation: twinkle 4s ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.25; transform: scale(0.9); }
+      50%      { opacity: 1;    transform: scale(1.25); }
+    }
+
+    .shooting-star {
+      position: absolute;
+      width: 120px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(
+        to right,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0.95)
+      );
+      transform: rotate(-18deg);
+      opacity: 0;
+      filter: drop-shadow(0 0 6px rgba(255,255,255,0.65));
+      animation-name: shootingStar;
+      animation-timing-function: ease-out;
+      animation-iteration-count: infinite;
+    }
+
+    @keyframes shootingStar {
+      0%   { transform: translate3d(0, 0, 0) rotate(-18deg); opacity: 0; }
+      2%   { opacity: 0; }
+      4%   { opacity: 0.95; }
+      16%  { transform: translate3d(180px, 120px, 0) rotate(-18deg); opacity: 0; }
+      100% { transform: translate3d(180px, 120px, 0) rotate(-18deg); opacity: 0; }
     }
 
     /* 軽い雨 */
@@ -259,12 +347,17 @@
       #stage {
         min-height: calc(100vh - 70px);
       }
+
+      .shooting-star {
+        width: 90px;
+      }
     }
   </style>
 </head>
 <body>
 
 <div id="sky"></div>
+<div id="stars"></div>
 <div id="rain"></div>
 
 <div id="ui">
@@ -276,6 +369,7 @@
   var statusLineEl = document.getElementById("statusLine");
   var stage = document.getElementById("stage");
   var rainEl = document.getElementById("rain");
+  var starsEl = document.getElementById("stars");
 
   var LAYERS = 4;
   var SIZE = [1.0, 0.85, 0.72, 0.60];
@@ -325,10 +419,10 @@
   function applyScatterStyle(el, scatterKey, centerMode, ageIndex) {
     if (centerMode) {
       /* 少数時は中央からゆるく広がる */
-      var centerTop = (scatterKey % 19) - 9;                    // -9 〜 +9
-      var centerLeft = (Math.floor(scatterKey / 10) % 17) - 8; // -8 〜 +8
-      var centerRightOverlap = -8 - (scatterKey % 12);         // -8 〜 -19
-      var centerBottom = (Math.floor(scatterKey / 100) % 8) - 2; // -2 〜 +5
+      var centerTop = (scatterKey % 19) - 9;
+      var centerLeft = (Math.floor(scatterKey / 10) % 17) - 8;
+      var centerRightOverlap = -8 - (scatterKey % 12);
+      var centerBottom = (Math.floor(scatterKey / 100) % 8) - 2;
 
       /* 新しいものほど中央寄りに見えやすく少しだけ補正 */
       var agePull = Math.min(ageIndex, 6);
@@ -379,6 +473,43 @@
     }
   }
 
+  function buildStars() {
+    starsEl.innerHTML = "";
+
+    var isMobile = window.innerWidth <= 768;
+    var starCount = isMobile ? 28 : 46;
+    var shootingCount = isMobile ? 2 : 3;
+
+    for (var i = 0; i < starCount; i++) {
+      var star = document.createElement("div");
+      star.className = "star";
+
+      star.style.left = (Math.random() * 100) + "vw";
+      star.style.top = (Math.random() * 55) + "vh";
+      star.style.animationDuration = (2.8 + Math.random() * 3.8) + "s";
+      star.style.animationDelay = (Math.random() * 4) + "s";
+      star.style.opacity = (0.18 + Math.random() * 0.65).toFixed(2);
+
+      var size = 1 + Math.random() * 2;
+      star.style.width = size + "px";
+      star.style.height = size + "px";
+
+      starsEl.appendChild(star);
+    }
+
+    for (var j = 0; j < shootingCount; j++) {
+      var shootingStar = document.createElement("div");
+      shootingStar.className = "shooting-star";
+
+      shootingStar.style.left = (10 + Math.random() * 65) + "vw";
+      shootingStar.style.top = (8 + Math.random() * 28) + "vh";
+      shootingStar.style.animationDuration = (48 + Math.random() * 28) + "s";
+      shootingStar.style.animationDelay = (Math.random() * 30) + "s";
+
+      starsEl.appendChild(shootingStar);
+    }
+  }
+
   var apiBaseUrl = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
   var params = new URLSearchParams(window.location.search);
   var source = params.get("source") || "default";
@@ -392,6 +523,7 @@
   );
 
   buildRain();
+  buildStars();
 
   fetch(apiUrl, { cache: "no-store" })
     .then(function(res) {
@@ -497,9 +629,9 @@
 
   window.addEventListener("resize", function() {
     buildRain();
+    buildStars();
   });
 </script>
 
 </body>
 </html>
-``

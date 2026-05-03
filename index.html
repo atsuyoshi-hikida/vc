@@ -3,32 +3,36 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voice Cloud</title>
+<title>Voice Cloud Check</title>
 
 <style>
   body {
     margin: 0;
-    overflow: hidden;
-    background: linear-gradient(
-      to bottom,
-      #eaf5ff 0%,
-      #d6ecff 60%,
-      #cfe8ff 100%
-    );
+    padding: 20px;
+    background: #eaf5ff;
     font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
   }
 
+  #debug {
+    margin-bottom: 16px;
+    display: inline-block;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
   #stage {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
   }
 
   .bubble {
-    position: absolute;
-    top: 0;
-    left: 0;
     max-width: 260px;
     padding: 14px 18px;
     background: rgba(255,255,255,0.95);
@@ -36,22 +40,7 @@
     border-radius: 16px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     word-break: break-word;
-    pointer-events: none;
-    user-select: none;
-    will-change: transform;
-    transform-origin: top left;
-    backface-visibility: hidden;
     line-height: 1.5;
-  }
-
-  .bubble::after {
-    content: "";
-    position: absolute;
-    bottom: -14px;
-    left: 28px;
-    border-width: 14px 12px 0;
-    border-style: solid;
-    border-color: #444 transparent transparent;
   }
 
   .emoji-inline {
@@ -61,19 +50,11 @@
     vertical-align: -0.2em;
     object-fit: contain;
   }
-
-  @media (max-width: 768px) {
-    * {
-      touch-action: none;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-  }
 </style>
 </head>
-
 <body>
+
+<div id="debug">読み込み中...</div>
 <div id="stage"></div>
 
 <script>
@@ -84,45 +65,12 @@ const source = params.get("source") || "default";
 const session = params.get("session") || "";
 const API_URL = `${API_BASE_URL}?source=${encodeURIComponent(source)}&session=${encodeURIComponent(session)}`;
 
-const UPDATE_INTERVAL = 5000;
-
-const LAYERS = 4;
-const SIZE = [0.82, 0.68, 0.58, 0.50];
-const OPACITY = [1.0, 0.82, 0.64, 0.46];
-const RADII = [120, 220, 320, 430];
-
-/* 滑らかさ優先 */
-const FLOAT_RADIUS_BASE = 26;
-const FLOAT_SPEED_BASE = 0.00125;
-const FOLLOW_SPEED = 0.038;
-const LAYOUT_BLEND = 0.022;
-
+const debugEl = document.getElementById("debug");
 const stage = document.getElementById("stage");
-let bubbles = {};
 let emojiMap = {};
-let lastTime = performance.now();
 
-function hashString(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h) + str.charCodeAt(i);
-    h |= 0;
-  }
-  return Math.abs(h);
-}
-
-function seeded(seed) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-}
-
-function buildKeyList(messages) {
-  const counts = {};
-  return messages.map(msg => {
-    const text = String(msg.text || "");
-    counts[text] = (counts[text] || 0) + 1;
-    return text + "__" + counts[text];
-  });
+function setDebug(text) {
+  debugEl.textContent = text;
 }
 
 function escapeHtml(text) {
@@ -139,199 +87,54 @@ function renderTextWithEmoji(text) {
   return safe.replace(/:([a-zA-Z0-9_+-]+):/g, (match, name) => {
     const url = emojiMap[name];
     if (!url) return match;
-    return `<img class="emoji-inline" src="${url}" alt="${match}nst MIN_DIST = 170;
-  const POWER = 0.28;
+    return `<img class="emoji-inline" src="${url}" alt="${match}    setDebug("fetch中...\n" + API_URL);
 
-  for (let loop = 0; loop < 8; loop++) {
-    for (let i = 0; i < list.length; i++) {
-      for (let j = i + 1; j < list.length; j++) {
-        const a = list[i];
-        const b = list[j];
-        const dx = a.layoutX - b.layoutX;
-        const dy = a.layoutY - b.layoutY;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist < MIN_DIST) {
-          const push = (MIN_DIST - dist) * POWER;
-          const nx = dx / (dist || 1);
-          const ny = dy / (dist || 1);
-
-          a.layoutX += nx * push;
-          a.layoutY += ny * push;
-          b.layoutX -= nx * push;
-          b.layoutY -= ny * push;
-        }
-      }
-    }
-  }
-}
-
-function clampToStage(list) {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-
-  list.forEach(b => {
-    b.layoutX = Math.max(12, Math.min(w - 280, b.layoutX));
-    b.layoutY = Math.max(12, Math.min(h - 90, b.layoutY));
-  });
-}
-
-function renderBubbleTransform(b) {
-  b.el.style.transform = `translate3d(${b.x}px, ${b.y}px, 0) scale(${b.scale})`;
-}
-
-function createBubble(item, zIndex) {
-  const el = document.createElement("div");
-  el.className = "bubble";
-  el.innerHTML = renderTextWithEmoji(item.text);
-  el.style.opacity = item.opacity;
-  el.style.zIndex = String(zIndex);
-  stage.appendChild(el);
-
-  const bubble = {
-    key: item.key,
-    text: item.text,
-    el,
-    x: item.layoutX,
-    y: item.layoutY,
-    targetX: item.layoutX,
-    targetY: item.layoutY,
-    layoutX: item.layoutX,
-    layoutY: item.layoutY,
-    scale: item.scale,
-    opacity: item.opacity,
-    phase: item.phase,
-    floatRadius: item.floatRadius,
-    floatSpeed: item.floatSpeed
-  };
-
-  renderBubbleTransform(bubble);
-  return bubble;
-}
-
-function syncBubbles(layout, messagesLength) {
-  const nextKeys = new Set(layout.map(item => item.key));
-
-  Object.keys(bubbles).forEach(key => {
-    if (!nextKeys.has(key)) {
-      bubbles[key].el.remove();
-      delete bubbles[key];
-    }
-  });
-
-  layout.forEach((item, i) => {
-    const zIndex = messagesLength - i;
-
-    if (!bubbles[item.key]) {
-      bubbles[item.key] = createBubble(item, zIndex);
-    } else {
-      const b = bubbles[item.key];
-      b.text = item.text;
-      b.el.innerHTML = renderTextWithEmoji(item.text);
-      b.layoutX = item.layoutX;
-      b.layoutY = item.layoutY;
-      b.scale = item.scale;
-      b.opacity = item.opacity;
-      b.el.style.opacity = item.opacity;
-      b.el.style.zIndex = String(zIndex);
-      b.floatRadius = item.floatRadius;
-      b.floatSpeed = item.floatSpeed;
-    }
-  });
-}
-
-function buildLayout(messages) {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-  const perLayer = Math.ceil(messages.length / LAYERS) || 1;
-  const keys = buildKeyList(messages);
-
-  const list = messages.map((msg, i) => {
-    const text = String(msg.text || "");
-    const key = keys[i];
-    const layer = Math.min(Math.floor(i / perLayer), LAYERS - 1);
-
-    const seed = hashString(key);
-    const angle = seeded(seed + 1) * Math.PI * 2;
-    const radius = RADII[layer] * (0.92 + seeded(seed + 2) * 0.16);
-
-    return {
-      key,
-      text,
-      layer,
-      scale: SIZE[layer],
-      opacity: OPACITY[layer],
-      layoutX: cx + Math.cos(angle) * radius,
-      layoutY: cy + Math.sin(angle) * radius,
-      phase: seeded(seed + 3) * Math.PI * 2,
-      floatRadius: FLOAT_RADIUS_BASE * (0.9 + seeded(seed + 4) * 0.25),
-      floatSpeed: FLOAT_SPEED_BASE * (0.9 + seeded(seed + 5) * 0.2)
-    };
-  });
-
-  relaxOverlap(list);
-  clampToStage(list);
-
-  return list;
-}
-
-function animate(now) {
-  const delta = Math.min((now - lastTime) / 16.666, 2);
-  lastTime = now;
-
-  const followSmooth = 1 - Math.pow(1 - FOLLOW_SPEED, delta);
-  const layoutSmooth = 1 - Math.pow(1 - LAYOUT_BLEND, delta);
-
-  Object.values(bubbles).forEach(b => {
-    b.targetX += (b.layoutX - b.targetX) * layoutSmooth;
-    b.targetY += (b.layoutY - b.targetY) * layoutSmooth;
-
-    b.phase += b.floatSpeed * delta;
-    const fx = Math.cos(b.phase) * b.floatRadius;
-    const fy = Math.sin(b.phase) * b.floatRadius;
-
-    b.x += (b.targetX + fx - b.x) * followSmooth;
-    b.y += (b.targetY + fy - b.y) * followSmooth;
-
-    renderBubbleTransform(b);
-  });
-
-  requestAnimationFrame(animate);
-}
-
-function clearBubbles() {
-  Object.keys(bubbles).forEach(key => {
-    bubbles[key].el.remove();
-  });
-  bubbles = {};
-}
-
-async function update() {
-  try {
     const res = await fetch(API_URL, { cache: "no-store" });
     const data = await res.json();
 
     const active = !!data.active;
     const messages = Array.isArray(data.messages) ? data.messages : [];
+    const reason = data.reason || "";
     emojiMap = (data.emojiMap && typeof data.emojiMap === "object") ? data.emojiMap : {};
 
+    setDebug(
+      "status: " + res.status + "\n" +
+      "source: " + source + "\n" +
+      "session: " + session + "\n" +
+      "active: " + active + "\n" +
+      "messages: " + messages.length + "\n" +
+      "reason: " + reason
+    );
+
+    stage.innerHTML = "";
+
     if (!active) {
-      clearBubbles();
       return;
     }
 
-    const layout = buildLayout(messages);
-    syncBubbles(layout, messages.length);
+    if (messages.length === 0) {
+      const el = document.createElement("div");
+      el.className = "bubble";
+      el.textContent = "messages が 0 件です";
+      stage.appendChild(el);
+      return;
+    }
+
+    messages.forEach((msg, i) => {
+      const el = document.createElement("div");
+      el.className = "bubble";
+      el.innerHTML = (i + 1) + ". " + renderTextWithEmoji(msg.text || "");
+      stage.appendChild(el);
+    });
 
   } catch (error) {
-    console.error("データ取得エラー:", error);
+    setDebug("エラー: " + error.message);
+    stage.innerHTML = "";
   }
 }
 
-update();
-requestAnimationFrame(animate);
-setInterval(update, UPDATE_INTERVAL);
-window.addEventListener("resize", update);
+render();
 </script>
+
 </body>
 </html>

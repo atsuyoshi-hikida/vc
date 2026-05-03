@@ -31,6 +31,7 @@
       align-items: flex-start;
       gap: 0;
       position: relative;
+      padding-top: 8px;
     }
 
     .bubble {
@@ -50,9 +51,9 @@
       animation-direction: alternate;
       transform-origin: center center;
 
-      /* 過度でない重なり */
-      margin-right: -22px;
-      margin-bottom: 6px;
+      /* 基本の重なり */
+      margin-right: -20px;
+      margin-bottom: 4px;
     }
 
     .bubble::after {
@@ -110,14 +111,6 @@
     );
   };
 
-  setDebug("JS開始OK");
-
-  var apiBaseUrl = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
-  var params = new URLSearchParams(window.location.search);
-  var source = params.get("source") || "default";
-  var session = params.get("session") || "";
-  var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
-
   function hashString(str) {
     var h = 0;
     for (var i = 0; i < str.length; i++) {
@@ -138,12 +131,32 @@
     };
   }
 
-  function applyBubbleAnimation(el, index) {
-    var duration = 5 + (index % 5) * 0.8;
+  function applyBubbleAnimation(el, index, scatterKey) {
+    var duration = 5 + (index % 5) * 0.8 + (scatterKey % 3) * 0.25;
     var delay = (index % 7) * 0.4;
     el.style.animationDuration = duration + "s";
     el.style.animationDelay = delay + "s";
   }
+
+  function applyScatterStyle(el, scatterKey) {
+    var topOffset = (scatterKey % 31) - 15;          // -15 〜 +15
+    var leftOffset = (Math.floor(scatterKey / 10) % 15) - 7;  // -7 〜 +7
+    var rightOverlap = -12 - (scatterKey % 18);     // -12 〜 -29
+    var bottomOffset = (Math.floor(scatterKey / 100) % 9) - 2; // -2 〜 +6
+
+    el.style.marginTop = topOffset + "px";
+    el.style.marginLeft = leftOffset + "px";
+    el.style.marginRight = rightOverlap + "px";
+    el.style.marginBottom = bottomOffset + "px";
+  }
+
+  setDebug("JS開始OK");
+
+  var apiBaseUrl = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
+  var params = new URLSearchParams(window.location.search);
+  var source = params.get("source") || "default";
+  var session = params.get("session") || "";
+  var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
 
   setDebug(
     "JS開始OK\n" +
@@ -196,7 +209,8 @@
         emptyEl.style.setProperty("--bubble-scale", "1");
         emptyEl.style.opacity = "1";
         emptyEl.style.zIndex = "1";
-        applyBubbleAnimation(emptyEl, 0);
+        applyBubbleAnimation(emptyEl, 0, 0);
+        applyScatterStyle(emptyEl, 0);
         stage.appendChild(emptyEl);
         return;
       }
@@ -210,7 +224,7 @@
         };
       });
 
-      /* 古い投稿も全体に散るように、見た目の並びだけ安定シャッフル */
+      /* 全体に散るよう、見た目の並びを安定シャッフル */
       visualItems.sort(function(a, b) {
         return a.scatterKey - b.scatterKey;
       });
@@ -229,7 +243,12 @@
         el.style.setProperty("--bubble-scale", String(layerInfo.scale));
         el.style.opacity = String(layerInfo.opacity);
 
-        applyBubbleAnimation(el, renderIndex);
+        /* 散らばりを強める */
+        applyScatterStyle(el, item.scatterKey);
+
+        /* 動きは維持 */
+        applyBubbleAnimation(el, renderIndex, item.scatterKey);
+
         stage.appendChild(el);
       });
     })

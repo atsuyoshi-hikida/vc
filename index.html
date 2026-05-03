@@ -28,8 +28,8 @@
     #stage {
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
       align-items: flex-start;
+      gap: 0;
       position: relative;
     }
 
@@ -49,6 +49,10 @@
       animation-iteration-count: infinite;
       animation-direction: alternate;
       transform-origin: center center;
+
+      /* 過度でない重なり */
+      margin-right: -22px;
+      margin-bottom: 6px;
     }
 
     .bubble::after {

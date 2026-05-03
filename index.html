@@ -10,7 +10,9 @@
       padding: 20px;
       background: #eaf5ff;
       font-family: sans-serif;
+      overflow: hidden;
     }
+
     #debug {
       display: inline-block;
       background: rgba(0,0,0,0.8);
@@ -22,12 +24,14 @@
       white-space: pre-wrap;
       margin-bottom: 16px;
     }
+
     #stage {
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
       align-items: flex-start;
     }
+
     .bubble {
       max-width: 260px;
       padding: 14px 18px;
@@ -38,7 +42,13 @@
       word-break: break-word;
       line-height: 1.5;
       position: relative;
+      animation-name: floatBubble;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+      animation-direction: alternate;
+      will-change: transform;
     }
+
     .bubble::after {
       content: "";
       position: absolute;
@@ -47,6 +57,24 @@
       border-width: 14px 12px 0;
       border-style: solid;
       border-color: #444 transparent transparent;
+    }
+
+    @keyframes floatBubble {
+      0% {
+        transform: translate(0px, 0px);
+      }
+      25% {
+        transform: translate(4px, -6px);
+      }
+      50% {
+        transform: translate(-3px, -10px);
+      }
+      75% {
+        transform: translate(5px, -4px);
+      }
+      100% {
+        transform: translate(-4px, 2px);
+      }
     }
   </style>
 </head>
@@ -86,6 +114,13 @@
     "session: " + session + "\n" +
     "fetch中..."
   );
+
+  function applyBubbleAnimation(el, index) {
+    var duration = 5 + (index % 5) * 0.8;
+    var delay = (index % 7) * 0.4;
+    el.style.animationDuration = duration + "s";
+    el.style.animationDelay = delay + "s";
+  }
 
   fetch(apiUrl, { cache: "no-store" })
     .then(function(res) {
@@ -128,6 +163,7 @@
         var emptyEl = document.createElement("div");
         emptyEl.className = "bubble";
         emptyEl.textContent = "messages が 0 件です";
+        applyBubbleAnimation(emptyEl, 0);
         stage.appendChild(emptyEl);
         return;
       }
@@ -136,6 +172,7 @@
         var el = document.createElement("div");
         el.className = "bubble";
         el.textContent = (i + 1) + ". " + String(msg.text || "");
+        applyBubbleAnimation(el, i);
         stage.appendChild(el);
       });
     })

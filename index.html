@@ -41,6 +41,7 @@
     will-change: transform;
     transform-origin: top left;
     backface-visibility: hidden;
+    line-height: 1.5;
   }
 
   .bubble::after {
@@ -51,6 +52,14 @@
     border-width: 14px 12px 0;
     border-style: solid;
     border-color: #444 transparent transparent;
+  }
+
+  .emoji-inline {
+    display: inline-block;
+    width: 1.25em;
+    height: 1.25em;
+    vertical-align: -0.2em;
+    object-fit: contain;
   }
 
   @media (max-width: 768px) {
@@ -80,7 +89,6 @@ const SIZE = [0.82, 0.68, 0.58, 0.50];
 const OPACITY = [1.0, 0.82, 0.64, 0.46];
 const RADII = [120, 220, 320, 430];
 
-/* 滑らかさ優先 */
 const FLOAT_RADIUS_BASE = 26;
 const FLOAT_SPEED_BASE = 0.00125;
 const FOLLOW_SPEED = 0.038;
@@ -88,6 +96,7 @@ const LAYOUT_BLEND = 0.022;
 
 const stage = document.getElementById("stage");
 let bubbles = {};
+let emojiMap = {};
 let lastTime = performance.now();
 
 function hashString(str) {
@@ -113,8 +122,21 @@ function buildKeyList(messages) {
   });
 }
 
-function relaxOverlap(list) {
-  const MIN_DIST = 170;
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderTextWithEmoji(text) {
+  const safe = escapeHtml(text);
+  return safe.replace(/:([a-zA-Z0-9_+-]+):/g, (match, name) => {
+    const url = emojiMap[name];
+    if (!url) return match;
+    return `<img class="emoji-inline" src="${url}" alt="${match}nst MIN_DIST = 170;
   const POWER = 0.28;
 
   for (let loop = 0; loop < 8; loop++) {
@@ -158,7 +180,7 @@ function renderBubbleTransform(b) {
 function createBubble(item, zIndex) {
   const el = document.createElement("div");
   el.className = "bubble";
-  el.textContent = item.text;
+  el.innerHTML = renderTextWithEmoji(item.text);
   el.style.opacity = item.opacity;
   el.style.zIndex = String(zIndex);
   stage.appendChild(el);
@@ -202,7 +224,7 @@ function syncBubbles(layout, messagesLength) {
     } else {
       const b = bubbles[item.key];
       b.text = item.text;
-      b.el.textContent = item.text;
+      b.el.innerHTML = renderTextWithEmoji(item.text);
       b.layoutX = item.layoutX;
       b.layoutY = item.layoutY;
       b.scale = item.scale;
@@ -258,16 +280,13 @@ function animate(now) {
   const layoutSmooth = 1 - Math.pow(1 - LAYOUT_BLEND, delta);
 
   Object.values(bubbles).forEach(b => {
-    /* レイアウト更新で急に飛ばないように、まず target が layout にじわっと寄る */
     b.targetX += (b.layoutX - b.targetX) * layoutSmooth;
     b.targetY += (b.layoutY - b.targetY) * layoutSmooth;
 
-    /* ふわっと円運動 */
     b.phase += b.floatSpeed * delta;
     const fx = Math.cos(b.phase) * b.floatRadius;
     const fy = Math.sin(b.phase) * b.floatRadius;
 
-    /* 実位置はさらにゆっくり追いかける */
     b.x += (b.targetX + fx - b.x) * followSmooth;
     b.y += (b.targetY + fy - b.y) * followSmooth;
 
@@ -282,6 +301,7 @@ async function update() {
     const res = await fetch(API_URL, { cache: "no-store" });
     const data = await res.json();
     const messages = Array.isArray(data.messages) ? data.messages : [];
+    emojiMap = (data.emojiMap && typeof data.emojiMap === "object") ? data.emojiMap : {};
 
     const layout = buildLayout(messages);
     syncBubbles(layout, messages.length);

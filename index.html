@@ -3,46 +3,72 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Cloud Fetch Check</title>
+  <title>Voice Cloud Safe Check</title>
+
   <style>
     body {
       margin: 0;
       padding: 20px;
       background: #eaf5ff;
-      font-family: sans-serif;
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
     }
+
     #debug {
+      margin-bottom: 16px;
       display: inline-block;
       background: rgba(0,0,0,0.8);
       color: #fff;
-      padding: 12px 14px;
+      padding: 10px 14px;
       border-radius: 10px;
       font-size: 14px;
       line-height: 1.6;
       white-space: pre-wrap;
+    }
+
+    #stage {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .bubble {
+      max-width: 260px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.95);
+      border: 2px solid #444;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+      word-break: break-word;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    .bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -14px;
+      left: 28px;
+      border-width: 14px 12px 0;
+      border-style: solid;
+      border-color: #444 transparent transparent;
+    }
+
+    .emoji-inline {
+      display: inline-block;
+      width: 1.25em;
+      height: 1.25em;
+      vertical-align: -0.2em;
+      object-fit: contain;
     }
   </style>
 </head>
 <body>
 
 <div id="debug">読み込み中...</div>
+<div id="stage"></div>
 
 <script>
-const debugEl = document.getElementById("debug");
-
-function setDebug(text) {
-  debugEl.textContent = text;
-}
-
-window.onerror = function(message, source, lineno, colno) {
-  setDebug(
-    "JSエラー\n" +
-    "message: " + message + "\n" +
-    "line: " + lineno + "\n" +
-    "col: " + colno
-  );
-};
-
 const API_BASE_URL = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
 
 const params = new URLSearchParams(window.location.search);
@@ -50,41 +76,76 @@ const source = params.get("source") || "default";
 const session = params.get("session") || "";
 const API_URL = `${API_BASE_URL}?source=${encodeURIComponent(source)}&session=${encodeURIComponent(session)}`;
 
-setDebug(
-  "JS開始OK\n" +
-  "source: " + source + "\n" +
-  "session: " + session + "\n" +
-  "fetch中..."
-);
+const debugEl = document.getElementById("debug");
+const stage = document.getElementById("stage");
+let emojiMap = {};
 
-fetch(API_URL, { cache: "no-store" })
-  .then(res => res.text().then(text => ({ status: res.status, text })))
-  .then(result => {
-    let data;
-    try {
-      data = JSON.parse(result.text);
-    } catch (e) {
-      setDebug(
-        "JSON変換失敗\n" +
-        "status: " + result.status + "\n" +
-        result.text.slice(0, 500)
-      );
+function setDebug(text) {
+  debugEl.textContent = text;
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderTextWithEmoji(text) {
+  const safe = escapeHtml(text);
+  return safe.replace(/:([a-zA-Z0-9_+-]+):/g, (match, name) => {
+    const url = emojiMap[name];
+    if (!url) return match;
+    return `<img class="emoji-inline" src="${url}" alt="${match}    setDebug("fetch中...\n" + API_URL);
+
+    const res = await fetch(API_URL, { cache: "no-store" });
+    const data = await res.json();
+
+    const active = !!data.active;
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    const reason = data.reason || "";
+    emojiMap = (data.emojiMap && typeof data.emojiMap === "object") ? data.emojiMap : {};
+
+    setDebug(
+      "status: " + res.status + "\n" +
+      "source: " + source + "\n" +
+      "session: " + session + "\n" +
+      "active: " + active + "\n" +
+      "messages: " + messages.length + "\n" +
+      "reason: " + reason
+    );
+
+    stage.innerHTML = "";
+
+    if (!active) {
       return;
     }
 
-    setDebug(
-      "fetch成功\n" +
-      "status: " + result.status + "\n" +
-      "active: " + data.active + "\n" +
-      "messages: " + ((data.messages || []).length) + "\n" +
-      "reason: " + (data.reason || "")
-    );
-  })
-  .catch(err => {
-    setDebug("fetch失敗\n" + err.message);
-  });
+    if (messages.length === 0) {
+      const el = document.createElement("div");
+      el.className = "bubble";
+      el.textContent = "messages が 0 件です";
+      stage.appendChild(el);
+      return;
+    }
+
+    messages.forEach((msg, i) => {
+      const el = document.createElement("div");
+      el.className = "bubble";
+      el.innerHTML = (i + 1) + ". " + renderTextWithEmoji(msg.text || "");
+      stage.appendChild(el);
+    });
+
+  } catch (error) {
+    setDebug("エラー: " + error.message);
+    stage.innerHTML = "";
+  }
+}
+
+render();
 </script>
 
 </body>
 </html>
-``

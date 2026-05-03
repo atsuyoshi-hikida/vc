@@ -118,12 +118,14 @@
   var session = params.get("session") || "";
   var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
 
-  setDebug(
-    "JS開始OK\n" +
-    "source: " + source + "\n" +
-    "session: " + session + "\n" +
-    "fetch中..."
-  );
+  function hashString(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) - h) + str.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
 
   function getLayerInfo(index, total) {
     var perLayer = Math.ceil(total / LAYERS) || 1;
@@ -142,6 +144,13 @@
     el.style.animationDuration = duration + "s";
     el.style.animationDelay = delay + "s";
   }
+
+  setDebug(
+    "JS開始OK\n" +
+    "source: " + source + "\n" +
+    "session: " + session + "\n" +
+    "fetch中..."
+  );
 
   fetch(apiUrl, { cache: "no-store" })
     .then(function(res) {
@@ -192,21 +201,35 @@
         return;
       }
 
-      messages.forEach(function(msg, i) {
-        var layerInfo = getLayerInfo(i, messages.length);
+      var visualItems = messages.map(function(msg, i) {
+        var text = String(msg.text || "");
+        return {
+          text: text,
+          ageIndex: i,
+          scatterKey: hashString(text + "__" + i)
+        };
+      });
+
+      /* 古い投稿も全体に散るように、見た目の並びだけ安定シャッフル */
+      visualItems.sort(function(a, b) {
+        return a.scatterKey - b.scatterKey;
+      });
+
+      visualItems.forEach(function(item, renderIndex) {
+        var layerInfo = getLayerInfo(item.ageIndex, messages.length);
 
         var el = document.createElement("div");
         el.className = "bubble";
-        el.textContent = (i + 1) + ". " + String(msg.text || "");
+        el.textContent = item.text;
 
         /* 最新を前面、古いものを背面 */
-        el.style.zIndex = String(messages.length - i);
+        el.style.zIndex = String(messages.length - item.ageIndex);
 
         /* レイヤーごとのサイズと透過 */
         el.style.setProperty("--bubble-scale", String(layerInfo.scale));
         el.style.opacity = String(layerInfo.opacity);
 
-        applyBubbleAnimation(el, i);
+        applyBubbleAnimation(el, renderIndex);
         stage.appendChild(el);
       });
     })

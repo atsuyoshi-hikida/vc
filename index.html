@@ -139,10 +139,11 @@
   }
 
   function applyScatterStyle(el, scatterKey) {
-    var topOffset = (scatterKey % 31) - 15;          // -15 〜 +15
-    var leftOffset = (Math.floor(scatterKey / 10) % 15) - 7;  // -7 〜 +7
-    var rightOverlap = -12 - (scatterKey % 18);     // -12 〜 -29
-    var bottomOffset = (Math.floor(scatterKey / 100) % 9) - 2; // -2 〜 +6
+    /* 前回より半歩だけ強める */
+    var topOffset = (scatterKey % 41) - 20;                   // -20 〜 +20
+    var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12; // -12 〜 +12
+    var rightOverlap = -10 - (scatterKey % 25);               // -10 〜 -34
+    var bottomOffset = (Math.floor(scatterKey / 100) % 14) - 4; // -4 〜 +9
 
     el.style.marginTop = topOffset + "px";
     el.style.marginLeft = leftOffset + "px";
@@ -243,7 +244,7 @@
         el.style.setProperty("--bubble-scale", String(layerInfo.scale));
         el.style.opacity = String(layerInfo.opacity);
 
-        /* 散らばりを強める */
+        /* 散らばりを少し強める */
         applyScatterStyle(el, item.scatterKey);
 
         /* 動きは維持 */

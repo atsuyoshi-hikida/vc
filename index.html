@@ -8,9 +8,109 @@
     body {
       margin: 0;
       padding: 20px;
-      background: #eaf5ff;
       font-family: sans-serif;
       overflow: hidden;
+      position: relative;
+      background: #d8ecff;
+    }
+
+    /* 背景の昼夜変化 */
+    #sky {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        linear-gradient(
+          to bottom,
+          #d8efff 0%,
+          #bfe5ff 45%,
+          #eaf6ff 100%
+        );
+      animation: skyCycle 1200s linear infinite;
+    }
+
+    @keyframes skyCycle {
+      /* 夜明け */
+      0% {
+        background:
+          linear-gradient(
+            to bottom,
+            #8ea6c9 0%,
+            #d8b4a0 45%,
+            #f7d9b8 100%
+          );
+      }
+
+      /* 朝 */
+      15% {
+        background:
+          linear-gradient(
+            to bottom,
+            #b9dcff 0%,
+            #d9efff 50%,
+            #f5fbff 100%
+          );
+      }
+
+      /* 昼 */
+      35% {
+        background:
+          linear-gradient(
+            to bottom,
+            #9fd7ff 0%,
+            #cfeeff 55%,
+            #f3fbff 100%
+          );
+      }
+
+      /* 午後 */
+      55% {
+        background:
+          linear-gradient(
+            to bottom,
+            #7ec8ff 0%,
+            #bfe8ff 55%,
+            #eef9ff 100%
+          );
+      }
+
+      /* 夕方 */
+      72% {
+        background:
+          linear-gradient(
+            to bottom,
+            #5a86c9 0%,
+            #e0a07a 52%,
+            #ffd5a6 100%
+          );
+      }
+
+      /* 夜 */
+      85% {
+        background:
+          linear-gradient(
+            to bottom,
+            #0f1830 0%,
+            #1a2d53 50%,
+            #2f456c 100%
+          );
+      }
+
+      /* 夜明け前 */
+      100% {
+        background:
+          linear-gradient(
+            to bottom,
+            #8ea6c9 0%,
+            #d8b4a0 45%,
+            #f7d9b8 100%
+          );
+      }
+    }
+
+    #ui {
+      position: relative;
+      z-index: 1;
     }
 
     #debug {
@@ -87,8 +187,12 @@
 </head>
 <body>
 
-<div id="debug">読み込み中...</div>
-<div id="stage"></div>
+<div id="sky"></div>
+
+<div id="ui">
+  <div id="debug">読み込み中...</div>
+  <div id="stage"></div>
+</div>
 
 <script>
   var debugEl = document.getElementById("debug");
@@ -139,8 +243,8 @@
   }
 
   function applyScatterStyle(el, scatterKey) {
-    /* 前回より半歩だけ強める */
-    var topOffset = (scatterKey % 41) - 20;                   // -20 〜 +20
+    /* 今のまま、散らばりだけ半歩強める */
+    var topOffset = (scatterKey % 41) - 20;                    // -20 〜 +20
     var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12; // -12 〜 +12
     var rightOverlap = -10 - (scatterKey % 25);               // -10 〜 -34
     var bottomOffset = (Math.floor(scatterKey / 100) % 14) - 4; // -4 〜 +9
@@ -240,14 +344,14 @@
         /* 最新を前面、古いものを背面 */
         el.style.zIndex = String(messages.length - item.ageIndex);
 
-        /* レイヤーごとのサイズと透過 */
+        /* 新しい投稿ほど大きく・濃く */
         el.style.setProperty("--bubble-scale", String(layerInfo.scale));
         el.style.opacity = String(layerInfo.opacity);
 
-        /* 散らばりを少し強める */
+        /* 散らばり */
         applyScatterStyle(el, item.scatterKey);
 
-        /* 動きは維持 */
+        /* 動き */
         applyBubbleAnimation(el, renderIndex, item.scatterKey);
 
         stage.appendChild(el);

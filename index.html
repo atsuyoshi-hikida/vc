@@ -30,14 +30,14 @@
     }
 
     @keyframes skyCycle {
-      /* 夜明け */
+      /* 夜明け（ループの始点・終点は同じ色にしてつなぎ目を自然に） */
       0% {
         background:
           linear-gradient(
             to bottom,
-            #7d93b8 0%,
-            #cfa58f 45%,
-            #f4cfad 100%
+            #7a91b6 0%,
+            #cca48f 45%,
+            #f3d2b4 100%
           );
       }
 
@@ -85,25 +85,25 @@
           );
       }
 
-      /* 夜へ入り始める */
+      /* 宵 */
       78% {
         background:
           linear-gradient(
             to bottom,
-            #182441 0%,
-            #213764 52%,
-            #32496f 100%
+            #16233f 0%,
+            #21335b 52%,
+            #32476d 100%
           );
       }
 
-      /* 深い夜（少し長め） */
-      86% {
+      /* 深い夜（前回より暗く） */
+      84% {
         background:
           linear-gradient(
             to bottom,
-            #060c1b 0%,
-            #0d1730 50%,
-            #1a2844 100%
+            #020611 0%,
+            #081021 48%,
+            #13223b 100%
           );
       }
 
@@ -111,20 +111,42 @@
         background:
           linear-gradient(
             to bottom,
-            #060c1b 0%,
-            #0d1730 50%,
-            #1a2844 100%
+            #020611 0%,
+            #081021 48%,
+            #13223b 100%
           );
       }
 
-      /* 夜明け前 */
+      /* 夜明け前（徐々に明るく） */
+      97% {
+        background:
+          linear-gradient(
+            to bottom,
+            #2a3556 0%,
+            #5b6482 48%,
+            #8c89a1 100%
+          );
+      }
+
+      /* 朝焼けに寄っていく */
+      99% {
+        background:
+          linear-gradient(
+            to bottom,
+            #6f88ae 0%,
+            #c79a88 45%,
+            #efd0b2 100%
+          );
+      }
+
+      /* 夜明け */
       100% {
         background:
           linear-gradient(
             to bottom,
-            #7d93b8 0%,
-            #cfa58f 45%,
-            #f4cfad 100%
+            #7a91b6 0%,
+            #cca48f 45%,
+            #f3d2b4 100%
           );
       }
     }
@@ -142,9 +164,10 @@
     @keyframes starsVisibility {
       0%   { opacity: 0; }
       72%  { opacity: 0; }
-      80%  { opacity: 0.35; }
-      86%  { opacity: 0.95; }
-      94%  { opacity: 0.95; }
+      80%  { opacity: 0.38; }
+      84%  { opacity: 0.92; }
+      94%  { opacity: 0.98; }
+      97%  { opacity: 0.35; }
       100% { opacity: 0; }
     }
 
@@ -160,7 +183,7 @@
 
     @keyframes twinkle {
       0%, 100% { opacity: 0.25; transform: scale(0.9); }
-      50%      { opacity: 1;    transform: scale(1.25); }
+      50%      { opacity: 1; transform: scale(1.25); }
     }
 
     .shooting-star {

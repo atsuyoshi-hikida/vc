@@ -30,7 +30,6 @@
     }
 
     @keyframes skyCycle {
-      /* 夜明け */
       0% {
         background:
           linear-gradient(
@@ -41,7 +40,6 @@
           );
       }
 
-      /* 朝 */
       15% {
         background:
           linear-gradient(
@@ -52,7 +50,6 @@
           );
       }
 
-      /* 昼 */
       35% {
         background:
           linear-gradient(
@@ -63,7 +60,6 @@
           );
       }
 
-      /* 午後 */
       55% {
         background:
           linear-gradient(
@@ -74,7 +70,6 @@
           );
       }
 
-      /* 夕方 */
       72% {
         background:
           linear-gradient(
@@ -85,7 +80,6 @@
           );
       }
 
-      /* 夜 */
       85% {
         background:
           linear-gradient(
@@ -96,7 +90,6 @@
           );
       }
 
-      /* 夜明け前 */
       100% {
         background:
           linear-gradient(
@@ -113,16 +106,27 @@
       z-index: 1;
     }
 
-    #debug {
+    /* 小さな1行ステータス */
+    #statusLine {
+      position: sticky;
+      top: 0;
+      z-index: 10;
       display: inline-block;
-      background: rgba(0,0,0,0.8);
-      color: #fff;
-      padding: 12px 14px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      margin-bottom: 16px;
+      max-width: calc(100vw - 40px);
+      margin-bottom: 14px;
+      padding: 4px 10px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: rgba(20, 20, 20, 0.72);
+      background: rgba(255,255,255,0.38);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px;
+      backdrop-filter: blur(4px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      user-select: none;
     }
 
     #stage {
@@ -183,6 +187,17 @@
         transform: translate(-4px, 2px) scale(var(--bubble-scale, 1));
       }
     }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 14px;
+      }
+
+      #statusLine {
+        max-width: calc(100vw - 28px);
+        font-size: 11px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -190,28 +205,28 @@
 <div id="sky"></div>
 
 <div id="ui">
-  <div id="debug">読み込み中...</div>
+  <div id="statusLine">status: loading...</div>
   <div id="stage"></div>
 </div>
 
 <script>
-  var debugEl = document.getElementById("debug");
+  var statusLineEl = document.getElementById("statusLine");
   var stage = document.getElementById("stage");
 
   var LAYERS = 4;
   var SIZE = [1.0, 0.85, 0.72, 0.60];
   var OPACITY = [1.0, 0.82, 0.64, 0.46];
 
-  function setDebug(text) {
-    debugEl.textContent = text;
+  function setStatusLine(text) {
+    statusLineEl.textContent = text;
   }
 
   window.onerror = function(message, source, lineno, colno) {
-    setDebug(
-      "JSエラー\n" +
-      "message: " + message + "\n" +
-      "line: " + lineno + "\n" +
-      "col: " + colno
+    setStatusLine(
+      "error | " +
+      "message: " + message +
+      " | line: " + lineno +
+      " | col: " + colno
     );
   };
 
@@ -244,10 +259,10 @@
 
   function applyScatterStyle(el, scatterKey) {
     /* 今のまま、散らばりだけ半歩強める */
-    var topOffset = (scatterKey % 41) - 20;                    // -20 〜 +20
-    var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12; // -12 〜 +12
-    var rightOverlap = -10 - (scatterKey % 25);               // -10 〜 -34
-    var bottomOffset = (Math.floor(scatterKey / 100) % 14) - 4; // -4 〜 +9
+    var topOffset = (scatterKey % 41) - 20;
+    var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12;
+    var rightOverlap = -10 - (scatterKey % 25);
+    var bottomOffset = (Math.floor(scatterKey / 100) % 14) - 4;
 
     el.style.marginTop = topOffset + "px";
     el.style.marginLeft = leftOffset + "px";
@@ -255,19 +270,16 @@
     el.style.marginBottom = bottomOffset + "px";
   }
 
-  setDebug("JS開始OK");
-
   var apiBaseUrl = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
   var params = new URLSearchParams(window.location.search);
   var source = params.get("source") || "default";
   var session = params.get("session") || "";
   var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
 
-  setDebug(
-    "JS開始OK\n" +
-    "source: " + source + "\n" +
-    "session: " + session + "\n" +
-    "fetch中..."
+  setStatusLine(
+    "source=" + source +
+    " | session=" + (session || "-") +
+    " | status=loading"
   );
 
   fetch(apiUrl, { cache: "no-store" })
@@ -281,24 +293,23 @@
       try {
         data = JSON.parse(result.text);
       } catch (e) {
-        setDebug(
-          "JSON変換失敗\n" +
-          "status: " + result.status + "\n" +
-          result.text.slice(0, 500)
+        setStatusLine(
+          "status=" + result.status +
+          " | json=parse_error"
         );
         return;
       }
 
       var active = !!data.active;
       var messages = Array.isArray(data.messages) ? data.messages : [];
-      var reason = data.reason || "";
+      var reason = data.reason || "-";
 
-      setDebug(
-        "fetch成功\n" +
-        "status: " + result.status + "\n" +
-        "active: " + active + "\n" +
-        "messages: " + messages.length + "\n" +
-        "reason: " + reason
+      setStatusLine(
+        "source=" + source +
+        " | session=" + (session || "-") +
+        " | active=" + active +
+        " | messages=" + messages.length +
+        " | reason=" + reason
       );
 
       stage.innerHTML = "";
@@ -358,9 +369,15 @@
       });
     })
     .catch(function(err) {
-      setDebug("fetch失敗\n" + err.message);
+      setStatusLine(
+        "source=" + source +
+        " | session=" + (session || "-") +
+        " | fetch=error" +
+        " | message=" + err.message
+      );
     });
 </script>
 
 </body>
 </html>
+``

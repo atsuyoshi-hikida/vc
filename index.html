@@ -1,29 +1,90 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STEP CHECK</title>
+  <title>Voice Cloud Fetch Check</title>
   <style>
     body {
       margin: 0;
-      background: #d8ffd8;
+      padding: 20px;
+      background: #eaf5ff;
       font-family: sans-serif;
     }
-    #msg {
-      padding: 24px;
-      font-size: 32px;
-      font-weight: bold;
-      color: #111;
+    #debug {
+      display: inline-block;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
-  <div id="msg">JS OK / HTML OK</div>
 
-  <script>
-    document.title = "STEP CHECK OK";
-    document.getElementById("msg").textContent = "JS OK / HTML OK / 最新反映";
-  </script>
+<div id="debug">読み込み中...</div>
+
+<script>
+const debugEl = document.getElementById("debug");
+
+function setDebug(text) {
+  debugEl.textContent = text;
+}
+
+window.onerror = function(message, source, lineno, colno) {
+  setDebug(
+    "JSエラー\n" +
+    "message: " + message + "\n" +
+    "line: " + lineno + "\n" +
+    "col: " + colno
+  );
+};
+
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
+
+const params = new URLSearchParams(window.location.search);
+const source = params.get("source") || "default";
+const session = params.get("session") || "";
+const API_URL = `${API_BASE_URL}?source=${encodeURIComponent(source)}&session=${encodeURIComponent(session)}`;
+
+setDebug(
+  "JS開始OK\n" +
+  "source: " + source + "\n" +
+  "session: " + session + "\n" +
+  "fetch中..."
+);
+
+fetch(API_URL, { cache: "no-store" })
+  .then(res => res.text().then(text => ({ status: res.status, text })))
+  .then(result => {
+    let data;
+    try {
+      data = JSON.parse(result.text);
+    } catch (e) {
+      setDebug(
+        "JSON変換失敗\n" +
+        "status: " + result.status + "\n" +
+        result.text.slice(0, 500)
+      );
+      return;
+    }
+
+    setDebug(
+      "fetch成功\n" +
+      "status: " + result.status + "\n" +
+      "active: " + data.active + "\n" +
+      "messages: " + ((data.messages || []).length) + "\n" +
+      "reason: " + (data.reason || "")
+    );
+  })
+  .catch(err => {
+    setDebug("fetch失敗\n" + err.message);
+  });
+</script>
+
 </body>
 </html>
+``

@@ -176,9 +176,19 @@
       display: flex;
       flex-wrap: wrap;
       align-items: flex-start;
+      align-content: flex-start;
+      justify-content: flex-start;
       gap: 0;
       position: relative;
+      min-height: calc(100vh - 80px);
       padding-top: 8px;
+    }
+
+    /* 少数時は中央から広がる */
+    #stage.center-mode {
+      justify-content: center;
+      align-content: center;
+      padding-top: 0;
     }
 
     .bubble {
@@ -245,6 +255,10 @@
         height: 44px;
         width: 2px;
       }
+
+      #stage {
+        min-height: calc(100vh - 70px);
+      }
     }
   </style>
 </head>
@@ -266,6 +280,7 @@
   var LAYERS = 4;
   var SIZE = [1.0, 0.85, 0.72, 0.60];
   var OPACITY = [1.0, 0.82, 0.64, 0.46];
+  var CENTER_MODE_THRESHOLD = 8;
 
   function setStatusLine(text) {
     statusLineEl.textContent = text;
@@ -307,8 +322,26 @@
     el.style.animationDelay = delay + "s";
   }
 
-  function applyScatterStyle(el, scatterKey) {
-    /* 今のまま、散らばりだけ半歩強める */
+  function applyScatterStyle(el, scatterKey, centerMode, ageIndex) {
+    if (centerMode) {
+      /* 少数時は中央からゆるく広がる */
+      var centerTop = (scatterKey % 19) - 9;                    // -9 〜 +9
+      var centerLeft = (Math.floor(scatterKey / 10) % 17) - 8; // -8 〜 +8
+      var centerRightOverlap = -8 - (scatterKey % 12);         // -8 〜 -19
+      var centerBottom = (Math.floor(scatterKey / 100) % 8) - 2; // -2 〜 +5
+
+      /* 新しいものほど中央寄りに見えやすく少しだけ補正 */
+      var agePull = Math.min(ageIndex, 6);
+      centerLeft = centerLeft - agePull * 0.6;
+
+      el.style.marginTop = centerTop + "px";
+      el.style.marginLeft = centerLeft + "px";
+      el.style.marginRight = centerRightOverlap + "px";
+      el.style.marginBottom = centerBottom + "px";
+      return;
+    }
+
+    /* 通常時は今まで通りの散らばり */
     var topOffset = (scatterKey % 41) - 20;
     var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12;
     var rightOverlap = -10 - (scatterKey % 25);
@@ -381,6 +414,7 @@
       var active = !!data.active;
       var messages = Array.isArray(data.messages) ? data.messages : [];
       var reason = data.reason || "-";
+      var centerMode = messages.length > 0 && messages.length <= CENTER_MODE_THRESHOLD;
 
       setStatusLine(
         "source=" + source +
@@ -391,6 +425,12 @@
       );
 
       stage.innerHTML = "";
+
+      if (centerMode) {
+        stage.classList.add("center-mode");
+      } else {
+        stage.classList.remove("center-mode");
+      }
 
       if (!active) {
         return;
@@ -404,7 +444,7 @@
         emptyEl.style.opacity = "1";
         emptyEl.style.zIndex = "1";
         applyBubbleAnimation(emptyEl, 0, 0);
-        applyScatterStyle(emptyEl, 0);
+        applyScatterStyle(emptyEl, 0, centerMode, 0);
         stage.appendChild(emptyEl);
         return;
       }
@@ -437,8 +477,8 @@
         el.style.setProperty("--bubble-scale", String(layerInfo.scale));
         el.style.opacity = String(layerInfo.opacity);
 
-        /* 散らばり */
-        applyScatterStyle(el, item.scatterKey);
+        /* 少数時だけ中央から広がる */
+        applyScatterStyle(el, item.scatterKey, centerMode, item.ageIndex);
 
         /* 動き */
         applyBubbleAnimation(el, renderIndex, item.scatterKey);
@@ -462,3 +502,4 @@
 
 </body>
 </html>
+``

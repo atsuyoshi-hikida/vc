@@ -4,11 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Voice Cloud Safe</title>
+
+  <!-- Google Fonts: Zen Kaku Gothic Antique -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
   <style>
     body {
       margin: 0;
       padding: 20px;
-      font-family: sans-serif;
+      font-family: "Zen Kaku Gothic Antique", sans-serif;
+      font-weight: 300;
       overflow: hidden;
       position: relative;
       background: #d8ecff;
@@ -104,6 +111,7 @@
       z-index: 1;
     }
 
+    /* 小さな1行ステータス */
     #statusLine {
       position: sticky;
       top: 0;
@@ -124,6 +132,9 @@
       text-overflow: ellipsis;
       pointer-events: none;
       user-select: none;
+      font-family: "Zen Kaku Gothic Antique", sans-serif;
+      font-weight: 300;
+      letter-spacing: 0.01em;
     }
 
     #stage {
@@ -152,7 +163,7 @@
       border-radius: 16px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
       word-break: break-word;
-      line-height: 1.5;
+      line-height: 1.6;
       position: relative;
       will-change: transform, opacity;
       animation-name: floatBubble;
@@ -163,8 +174,12 @@
       margin-right: -20px;
       margin-bottom: 4px;
       transition: opacity 0.35s ease, transform 0.35s ease;
+      font-family: "Zen Kaku Gothic Antique", sans-serif;
+      font-weight: 300;
+      letter-spacing: 0.01em;
     }
 
+    /* 三角の外枠（2px感に調整） */
     .bubble::before {
       content: "";
       position: absolute;
@@ -175,6 +190,7 @@
       border-color: #444 transparent transparent;
     }
 
+    /* 三角の白い内側（外側との差を 2px に寄せる） */
     .bubble::after {
       content: "";
       position: absolute;

@@ -15,7 +15,7 @@
       margin: 0;
       padding: 20px;
       font-family: "Zen Kaku Gothic Antique", sans-serif;
-      font-weight: 300;
+      font-weight: 400;
       overflow: hidden;
       position: relative;
       background: #d8ecff;
@@ -111,7 +111,6 @@
       z-index: 1;
     }
 
-    /* 小さな1行ステータス */
     #statusLine {
       position: sticky;
       top: 0;
@@ -133,7 +132,7 @@
       pointer-events: none;
       user-select: none;
       font-family: "Zen Kaku Gothic Antique", sans-serif;
-      font-weight: 300;
+      font-weight: 400;
       letter-spacing: 0.01em;
     }
 
@@ -163,7 +162,7 @@
       border-radius: 16px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
       word-break: break-word;
-      line-height: 1.6;
+      line-height: 1.65;
       position: relative;
       will-change: transform, opacity;
       animation-name: floatBubble;
@@ -175,11 +174,10 @@
       margin-bottom: 4px;
       transition: opacity 0.35s ease, transform 0.35s ease;
       font-family: "Zen Kaku Gothic Antique", sans-serif;
-      font-weight: 300;
+      font-weight: 400;
       letter-spacing: 0.01em;
     }
 
-    /* 三角の外枠（2px感に調整） */
     .bubble::before {
       content: "";
       position: absolute;
@@ -190,7 +188,6 @@
       border-color: #444 transparent transparent;
     }
 
-    /* 三角の白い内側（外側との差を 2px に寄せる） */
     .bubble::after {
       content: "";
       position: absolute;

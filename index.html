@@ -141,7 +141,7 @@
       flex-wrap: wrap;
       align-items: flex-start;
       align-content: flex-start;
-      justify-content: flex-start;
+      justify-content: center; /* 常に中央寄せベース */
       gap: 0;
       position: relative;
       min-height: calc(100vh - 80px);
@@ -178,7 +178,6 @@
       letter-spacing: 0.01em;
     }
 
-    /* 三角の外枠 */
     .bubble::before {
       content: "";
       position: absolute;
@@ -189,7 +188,6 @@
       border-color: #444 transparent transparent;
     }
 
-    /* 三角の内側（吹き出しと同じ色） */
     .bubble::after {
       content: "";
       position: absolute;
@@ -554,12 +552,8 @@
   }
 
   function getBubbleColor(ageIndex) {
-    if (ageIndex === 0) {
-      return "#ffffe0";
-    }
-    if (ageIndex === 1 || ageIndex === 2) {
-      return "#fff0f5";
-    }
+    if (ageIndex === 0) return "#ffffe0";
+    if (ageIndex === 1 || ageIndex === 2) return "#fff0f5";
     return "#ffffff";
   }
 
@@ -578,8 +572,15 @@
       var centerLeft = (Math.floor(scatterKey / 10) % 17) - 8;
       var centerRightOverlap = -8 - (scatterKey % 12);
       var centerBottom = (Math.floor(scatterKey / 100) % 8) - 2;
-      var agePull = Math.min(ageIndex, 6);
-      centerLeft = centerLeft - agePull * 0.6;
+
+      /* 新しい 1〜3件は中央に寄せる */
+      if (ageIndex === 0) {
+        centerLeft = centerLeft * 0.35;
+        centerTop = centerTop * 0.35;
+      } else if (ageIndex === 1 || ageIndex === 2) {
+        centerLeft = centerLeft * 0.55;
+        centerTop = centerTop * 0.55;
+      }
 
       el.style.marginTop = centerTop + "px";
       el.style.marginLeft = centerLeft + "px";
@@ -588,10 +589,23 @@
       return;
     }
 
+    /* 通常時も新しい 1〜3件はあまり端に行かないように寄せる */
     var topOffset = (scatterKey % 41) - 20;
     var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12;
     var rightOverlap = -10 - (scatterKey % 25);
     var bottomOffset = (Math.floor(scatterKey / 100) % 14) - 4;
+
+    if (ageIndex === 0) {
+      topOffset = topOffset * 0.35;
+      leftOffset = leftOffset * 0.35;
+      rightOverlap = -8 - (scatterKey % 10);
+      bottomOffset = bottomOffset * 0.45;
+    } else if (ageIndex === 1 || ageIndex === 2) {
+      topOffset = topOffset * 0.55;
+      leftOffset = leftOffset * 0.55;
+      rightOverlap = -9 - (scatterKey % 14);
+      bottomOffset = bottomOffset * 0.6;
+    }
 
     el.style.marginTop = topOffset + "px";
     el.style.marginLeft = leftOffset + "px";
@@ -707,17 +721,35 @@
     clearPlaceholderIfNeeded();
 
     var keys = buildMessageKeys(messages);
-    var visualItems = messages.map(function(msg, i) {
-      return {
+
+    var newestItems = [];
+    var otherItems = [];
+
+    messages.forEach(function(msg, i) {
+      var item = {
         key: keys[i],
         text: String(msg.text || ""),
         ageIndex: i
       };
+
+      if (i <= 2) {
+        newestItems.push(item);
+      } else {
+        otherItems.push(item);
+      }
     });
 
-    visualItems.sort(function(a, b) {
+    /* 新しい 1〜3件は先頭に固定 */
+    newestItems.sort(function(a, b) {
+      return a.ageIndex - b.ageIndex;
+    });
+
+    /* それ以降は散らす */
+    otherItems.sort(function(a, b) {
       return hashString(a.key) - hashString(b.key);
     });
+
+    var visualItems = newestItems.concat(otherItems);
 
     var nextKeySet = new Set(visualItems.map(function(item) { return item.key; }));
 

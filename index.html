@@ -165,24 +165,24 @@
       margin-bottom: 4px;
     }
 
-    /* 三角の外枠 */
+    /* 三角の外枠（2px感に調整） */
     .bubble::before {
       content: "";
       position: absolute;
-      bottom: -16px;
-      left: 24px;
-      border-width: 16px 14px 0;
+      bottom: -14px;
+      left: 25px;
+      border-width: 14px 12px 0;
       border-style: solid;
       border-color: #444 transparent transparent;
     }
 
-    /* 三角の白い内側 */
+    /* 三角の白い内側（外側との差を 2px に寄せる） */
     .bubble::after {
       content: "";
       position: absolute;
       bottom: -12px;
       left: 27px;
-      border-width: 13px 11px 0;
+      border-width: 12px 10px 0;
       border-style: solid;
       border-color: rgba(255,255,255,0.95) transparent transparent;
     }
@@ -674,3 +674,4 @@
 
 </body>
 </html>
+``

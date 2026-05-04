@@ -109,6 +109,7 @@
     #ui {
       position: relative;
       z-index: 1;
+      min-height: calc(100vh - 40px);
     }
 
     #statusLine {
@@ -136,14 +137,15 @@
       letter-spacing: 0.01em;
     }
 
-    /* 最新1〜3件を置く中央エリア */
+    /* 最新1〜3件を置く中央エリア
+       前回より下げて、画面中央寄りにする */
     #featuredStageWrap {
-      min-height: 170px;
+      min-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-top: 2vh;
-      margin-bottom: 10px;
+      margin-top: clamp(14vh, 22vh, 28vh);
+      margin-bottom: 18px;
       position: relative;
     }
 
@@ -166,14 +168,14 @@
       justify-content: center;
       gap: 0;
       position: relative;
-      min-height: calc(100vh - 250px);
-      padding-top: 4px;
+      min-height: calc(100vh - 360px);
+      padding-top: 6px;
     }
 
     #stage.center-mode {
       justify-content: center;
       align-content: center;
-      min-height: calc(100vh - 190px);
+      min-height: calc(100vh - 260px);
     }
 
     .bubble {
@@ -279,15 +281,15 @@
       }
 
       #featuredStageWrap {
-        min-height: 150px;
+        margin-top: clamp(10vh, 18vh, 24vh);
       }
 
       #stage {
-        min-height: calc(100vh - 220px);
+        min-height: calc(100vh - 300px);
       }
 
       #stage.center-mode {
-        min-height: calc(100vh - 170px);
+        min-height: calc(100vh - 220px);
       }
     }
   </style>
@@ -321,7 +323,7 @@
   var CENTER_MODE_THRESHOLD = 8;
   var UPDATE_INTERVAL = 5000;
 
-  var CYCLE_SECONDS = 1200; // 20分で1日
+  var CYCLE_SECONDS = 1200;
   var syncedServerNowMs = null;
   var syncedClientStartMs = null;
   var stars = [];

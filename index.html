@@ -32,6 +32,8 @@
 
     .star {
       position: absolute;
+      width: 2px;
+      height: 2px;
       border-radius: 50%;
       background: rgba(255,255,255,0.98);
       box-shadow: 0 0 10px rgba(255,255,255,0.65);
@@ -60,6 +62,7 @@
       z-index: 0;
       pointer-events: none;
       overflow: hidden;
+      opacity: 1;
     }
 
     .raindrop {
@@ -335,6 +338,14 @@
     return 0;
   }
 
+  function getRainOpacity(phase) {
+    if (phase < 0.74) return 1;
+    if (phase < 0.82) return 1 - (phase - 0.74) / 0.08;
+    if (phase < 0.98) return 0;
+    if (phase <= 1.00) return (phase - 0.98) / 0.02;
+    return 1;
+  }
+
   function buildRain(serverNowMs) {
     rainEl.innerHTML = "";
 
@@ -368,8 +379,8 @@
     shootingStars = [];
 
     var isMobile = window.innerWidth <= 768;
-    var starCount = isMobile ? 48 : 82;
-    var shootingCount = isMobile ? 2 : 3;
+    var starCount = isMobile ? 56 : 96;   // 少し増やす
+    var shootingCount = isMobile ? 3 : 5; // 頻度変更（少し増やす）
 
     for (var i = 0; i < starCount; i++) {
       var starEl = document.createElement("div");
@@ -377,8 +388,8 @@
 
       var seed = i + 101;
       var x = seeded(seed) * 100;
-      var y = seeded(seed + 1) * 62;
-      var size = 1 + seeded(seed + 2) * 2.4;
+      var y = seeded(seed + 1) * 66;
+      var size = 1 + seeded(seed + 2) * 2.6;
       var twinkleSpeed = 2.4 + seeded(seed + 3) * 3.4;
       var twinkleOffset = seeded(seed + 4) * Math.PI * 2;
 
@@ -397,9 +408,11 @@
     }
 
     var configs = [
-      { start: 0.845, duration: 0.012, x: 18, y: 16 },
-      { start: 0.885, duration: 0.013, x: 54, y: 11 },
-      { start: 0.922, duration: 0.014, x: 72, y: 24 }
+      { start: 0.828, duration: 0.012, x: 14, y: 14 },
+      { start: 0.854, duration: 0.012, x: 46, y: 10 },
+      { start: 0.882, duration: 0.013, x: 66, y: 22 },
+      { start: 0.908, duration: 0.013, x: 28, y: 18 },
+      { start: 0.934, duration: 0.014, x: 74, y: 12 }
     ];
 
     for (var j = 0; j < shootingCount; j++) {
@@ -437,6 +450,9 @@
 
     var nightOpacity = getNightOpacity(phase);
     starsEl.style.opacity = String(nightOpacity);
+
+    var rainOpacity = getRainOpacity(phase);
+    rainEl.style.opacity = String(rainOpacity);
 
     var seconds = nowMs / 1000;
 

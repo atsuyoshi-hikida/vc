@@ -148,7 +148,7 @@
       pointer-events: none;
     }
 
-    /* ここを三角形っぽいまとまりにする */
+    /* ここを “やわらかい三角形” にする */
     #featuredStage {
       display: flex;
       flex-wrap: wrap;
@@ -241,18 +241,26 @@
       margin-bottom: 0;
     }
 
+    /* 最新は1段目中央 */
     .featured-latest {
       flex: 0 0 100%;
-      margin-left: auto;
-      margin-right: auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 2〜3番目は2段目で左右に離す */
+    .featured-second,
+    .featured-third {
+      flex: 0 0 auto;
+      margin-top: 18px;
     }
 
     .featured-second {
-      margin-right: 48px;
+      margin-right: 72px;
     }
 
     .featured-third {
-      margin-left: 48px;
+      margin-left: 72px;
     }
 
     @keyframes bubbleAppear {
@@ -313,12 +321,17 @@
         column-gap: 10px;
       }
 
+      .featured-second,
+      .featured-third {
+        margin-top: 12px;
+      }
+
       .featured-second {
-        margin-right: 20px;
+        margin-right: 24px;
       }
 
       .featured-third {
-        margin-left: 20px;
+        margin-left: 24px;
       }
 
       #stage {

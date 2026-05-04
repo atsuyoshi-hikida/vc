@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Voice Cloud Safe</title>
 
-  <!-- Google Fonts: Zen Kaku Gothic Antique -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -115,7 +114,7 @@
     #statusLine {
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 20;
       display: inline-block;
       max-width: calc(100vw - 40px);
       margin-bottom: 10px;
@@ -137,16 +136,16 @@
       letter-spacing: 0.01em;
     }
 
-    /* 最新1〜3件を置く中央エリア
-       前回より下げて、画面中央寄りにする */
-    #featuredStageWrap {
-      min-height: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: clamp(14vh, 22vh, 28vh);
-      margin-bottom: 18px;
-      position: relative;
+    /* 最新1〜3件のための固定レイヤー
+       レイアウトの高さを消費しない */
+    #featuredLayer {
+      position: absolute;
+      left: 50%;
+      top: 34vh;
+      transform: translateX(-50%);
+      width: min(1000px, 92vw);
+      z-index: 12;
+      pointer-events: none;
     }
 
     #featuredStage {
@@ -155,11 +154,10 @@
       justify-content: center;
       align-items: flex-start;
       gap: 0;
-      max-width: min(1000px, 92vw);
-      position: relative;
+      width: 100%;
     }
 
-    /* 4件目以降を置く全体エリア */
+    /* 通常の吹き出し群 */
     #stage {
       display: flex;
       flex-wrap: wrap;
@@ -168,14 +166,14 @@
       justify-content: center;
       gap: 0;
       position: relative;
-      min-height: calc(100vh - 360px);
+      min-height: calc(100vh - 120px);
       padding-top: 6px;
     }
 
     #stage.center-mode {
       justify-content: center;
       align-content: center;
-      min-height: calc(100vh - 260px);
+      min-height: calc(100vh - 140px);
     }
 
     .bubble {
@@ -200,6 +198,7 @@
       font-family: "Zen Kaku Gothic Antique", sans-serif;
       font-weight: 400;
       letter-spacing: 0.01em;
+      pointer-events: none;
     }
 
     .bubble::before {
@@ -280,16 +279,17 @@
         width: 90px;
       }
 
-      #featuredStageWrap {
-        margin-top: clamp(10vh, 18vh, 24vh);
+      #featuredLayer {
+        top: 29vh;
+        width: min(94vw, 720px);
       }
 
       #stage {
-        min-height: calc(100vh - 300px);
+        min-height: calc(100vh - 100px);
       }
 
       #stage.center-mode {
-        min-height: calc(100vh - 220px);
+        min-height: calc(100vh - 120px);
       }
     }
   </style>
@@ -303,7 +303,7 @@
 <div id="ui">
   <div id="statusLine">status: loading...</div>
 
-  <div id="featuredStageWrap">
+  <div id="featuredLayer">
     <div id="featuredStage"></div>
   </div>
 
@@ -658,8 +658,11 @@
     });
   }
 
-  function getContainerByAgeIndex(ageIndex) {
-    return ageIndex <= 2 ? featuredStage : stage;
+  function getContainerByAgeIndex(ageIndex, total) {
+    if (total > CENTER_MODE_THRESHOLD && ageIndex <= 2) {
+      return featuredStage;
+    }
+    return stage;
   }
 
   function createBubble(key, text, renderIndex, ageIndex, total, centerMode) {
@@ -670,7 +673,7 @@
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
     var bubbleColor = getBubbleColor(ageIndex);
-    var container = getContainerByAgeIndex(ageIndex);
+    var container = getContainerByAgeIndex(ageIndex, total);
 
     el.style.zIndex = String(total - ageIndex);
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
@@ -703,7 +706,7 @@
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
     var bubbleColor = getBubbleColor(ageIndex);
-    var container = getContainerByAgeIndex(ageIndex);
+    var container = getContainerByAgeIndex(ageIndex, total);
 
     if (item.text !== text) {
       el.textContent = text;
@@ -763,6 +766,7 @@
     }
 
     if (messages.length === 0) {
+      featuredStage.innerHTML = "";
       renderEmpty(centerMode);
       return;
     }
@@ -781,7 +785,7 @@
         ageIndex: i
       };
 
-      if (i <= 2) {
+      if (!centerMode && i <= 2) {
         newestItems.push(item);
       } else {
         otherItems.push(item);
@@ -850,6 +854,7 @@
           bubbleMap[key].el.remove();
         });
         bubbleMap = {};
+        featuredStage.innerHTML = "";
         return;
       }
 

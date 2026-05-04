@@ -157,7 +157,7 @@
     .bubble {
       max-width: 260px;
       padding: 14px 18px;
-      background: rgba(255,255,255,0.95);
+      background: var(--bubble-bg, rgba(255,255,255,0.95));
       border: 2px solid #444;
       border-radius: 16px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
@@ -178,6 +178,7 @@
       letter-spacing: 0.01em;
     }
 
+    /* 三角の外枠 */
     .bubble::before {
       content: "";
       position: absolute;
@@ -188,6 +189,7 @@
       border-color: #444 transparent transparent;
     }
 
+    /* 三角の内側（吹き出しと同じ色） */
     .bubble::after {
       content: "";
       position: absolute;
@@ -195,7 +197,7 @@
       left: 27px;
       border-width: 12px 10px 0;
       border-style: solid;
-      border-color: rgba(255,255,255,0.95) transparent transparent;
+      border-color: var(--bubble-bg, rgba(255,255,255,0.95)) transparent transparent;
     }
 
     .bubble.newborn {
@@ -280,7 +282,6 @@
   var starsEl = document.getElementById("stars");
   var skyEl = document.getElementById("sky");
 
-  var LAYERS = 4;
   var SIZE = [1.0, 0.85, 0.72, 0.60];
   var OPACITY = [1.0, 0.82, 0.64, 0.46];
   var CENTER_MODE_THRESHOLD = 8;
@@ -552,6 +553,16 @@
     };
   }
 
+  function getBubbleColor(ageIndex) {
+    if (ageIndex === 0) {
+      return "#ffffe0";
+    }
+    if (ageIndex === 1 || ageIndex === 2) {
+      return "#fff0f5";
+    }
+    return "#ffffff";
+  }
+
   function applyBubbleAnimation(el, index, scatterKey) {
     var duration = 5 + (index % 5) * 0.8 + (scatterKey % 3) * 0.25;
     var delay = (index % 7) * 0.4;
@@ -604,10 +615,12 @@
 
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
+    var bubbleColor = getBubbleColor(ageIndex);
 
     el.style.zIndex = String(total - ageIndex);
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
     el.style.setProperty("--bubble-opacity", String(layerInfo.opacity));
+    el.style.setProperty("--bubble-bg", bubbleColor);
     el.style.opacity = String(layerInfo.opacity);
 
     applyScatterStyle(el, scatterKey, centerMode, ageIndex);
@@ -633,6 +646,7 @@
     var el = item.el;
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
+    var bubbleColor = getBubbleColor(ageIndex);
 
     if (item.text !== text) {
       el.textContent = text;
@@ -642,6 +656,7 @@
     el.style.zIndex = String(total - ageIndex);
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
     el.style.setProperty("--bubble-opacity", String(layerInfo.opacity));
+    el.style.setProperty("--bubble-bg", bubbleColor);
     el.style.opacity = String(layerInfo.opacity);
     el.style.order = String(renderIndex);
 

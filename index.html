@@ -137,24 +137,26 @@
       letter-spacing: 0.01em;
     }
 
-    /* 最新1〜3件の固定レイヤー */
+    /* 最新1〜3件の固定レイヤー（通常群を押し下げない） */
     #featuredLayer {
       position: absolute;
       left: 50%;
-      top: 34vh;
+      top: 33vh;
       transform: translateX(-50%);
-      width: min(1000px, 92vw);
-      z-index: 50; /* ← 通常の吹き出し群より前 */
+      width: min(1080px, 94vw);
+      z-index: 50;
       pointer-events: none;
     }
 
+    /* ここを三角形っぽいまとまりにする */
     #featuredStage {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       align-items: flex-start;
-      gap: 0;
       width: 100%;
+      row-gap: 18px;
+      column-gap: 18px;
       position: relative;
     }
 
@@ -167,7 +169,7 @@
       justify-content: center;
       gap: 0;
       position: relative;
-      z-index: 1; /* ← featuredLayer より後ろ */
+      z-index: 1;
       min-height: calc(100vh - 120px);
       padding-top: 6px;
     }
@@ -233,6 +235,26 @@
       animation-direction: normal, alternate;
     }
 
+    /* featured 用の見せ方 */
+    .featured-bubble {
+      margin-right: 0;
+      margin-bottom: 0;
+    }
+
+    .featured-latest {
+      flex: 0 0 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .featured-second {
+      margin-right: 48px;
+    }
+
+    .featured-third {
+      margin-left: 48px;
+    }
+
     @keyframes bubbleAppear {
       0% {
         opacity: 0;
@@ -282,8 +304,21 @@
       }
 
       #featuredLayer {
-        top: 29vh;
-        width: min(94vw, 720px);
+        top: 28vh;
+        width: min(96vw, 760px);
+      }
+
+      #featuredStage {
+        row-gap: 14px;
+        column-gap: 10px;
+      }
+
+      .featured-second {
+        margin-right: 20px;
+      }
+
+      .featured-third {
+        margin-left: 20px;
       }
 
       #stage {
@@ -598,11 +633,20 @@
   }
 
   function getBubbleZIndex(ageIndex, total) {
-    /* 最新1〜3件は常に最前面 */
     if (total > CENTER_MODE_THRESHOLD && ageIndex <= 2) {
       return 3000 - ageIndex;
     }
     return 1000 - ageIndex;
+  }
+
+  function getFeaturedClass(ageIndex, total) {
+    if (!(total > CENTER_MODE_THRESHOLD && ageIndex <= 2)) {
+      return "";
+    }
+    if (ageIndex === 0) return "featured-bubble featured-latest";
+    if (ageIndex === 1) return "featured-bubble featured-second";
+    if (ageIndex === 2) return "featured-bubble featured-third";
+    return "";
   }
 
   function applyBubbleAnimation(el, index, scatterKey) {
@@ -678,6 +722,11 @@
   function createBubble(key, text, renderIndex, ageIndex, total, centerMode) {
     var el = document.createElement("div");
     el.className = "bubble newborn";
+    var extraClass = getFeaturedClass(ageIndex, total);
+    if (extraClass) {
+      el.className += " " + extraClass;
+    }
+
     el.textContent = text;
 
     var scatterKey = hashString(key);
@@ -717,11 +766,14 @@
     var layerInfo = getLayerInfo(ageIndex, total);
     var bubbleColor = getBubbleColor(ageIndex);
     var container = getContainerByAgeIndex(ageIndex, total);
+    var extraClass = getFeaturedClass(ageIndex, total);
 
     if (item.text !== text) {
       el.textContent = text;
       item.text = text;
     }
+
+    el.className = "bubble" + (el.classList.contains("newborn") ? " newborn" : "") + (extraClass ? " " + extraClass : "");
 
     if (el.parentNode !== container) {
       container.appendChild(el);

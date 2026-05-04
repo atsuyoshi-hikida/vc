@@ -144,20 +144,16 @@
       top: 33vh;
       transform: translateX(-50%);
       width: min(1080px, 94vw);
+      height: 220px;
       z-index: 50;
       pointer-events: none;
     }
 
-    /* ここを “やわらかい三角形” にする */
+    /* 三角形レイアウト用の相対コンテナ */
     #featuredStage {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: flex-start;
-      width: 100%;
-      row-gap: 18px;
-      column-gap: 18px;
       position: relative;
+      width: 100%;
+      height: 100%;
     }
 
     /* 通常の吹き出し群 */
@@ -235,32 +231,30 @@
       animation-direction: normal, alternate;
     }
 
-    /* featured 用の見せ方 */
+    /* featured 用 */
     .featured-bubble {
+      position: absolute;
       margin-right: 0;
       margin-bottom: 0;
     }
 
-    /* 最新は1段目中央 */
+    /* 三角形配置 */
     .featured-latest {
-      flex: 0 0 100%;
-      display: flex;
-      justify-content: center;
-    }
-
-    /* 2〜3番目は2段目で左右に離す */
-    .featured-second,
-    .featured-third {
-      flex: 0 0 auto;
-      margin-top: 18px;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
     }
 
     .featured-second {
-      margin-right: 72px;
+      left: calc(50% - 180px);
+      top: 92px;
+      transform: translateX(-50%);
     }
 
     .featured-third {
-      margin-left: 72px;
+      left: calc(50% + 180px);
+      top: 92px;
+      transform: translateX(-50%);
     }
 
     @keyframes bubbleAppear {
@@ -314,24 +308,17 @@
       #featuredLayer {
         top: 28vh;
         width: min(96vw, 760px);
-      }
-
-      #featuredStage {
-        row-gap: 14px;
-        column-gap: 10px;
-      }
-
-      .featured-second,
-      .featured-third {
-        margin-top: 12px;
+        height: 190px;
       }
 
       .featured-second {
-        margin-right: 24px;
+        left: calc(50% - 95px);
+        top: 82px;
       }
 
       .featured-third {
-        margin-left: 24px;
+        left: calc(50% + 95px);
+        top: 82px;
       }
 
       #stage {

@@ -104,7 +104,6 @@
       z-index: 1;
     }
 
-    /* 小さな1行ステータス */
     #statusLine {
       position: sticky;
       top: 0;
@@ -163,9 +162,9 @@
       transform-origin: center center;
       margin-right: -20px;
       margin-bottom: 4px;
+      transition: opacity 0.35s ease, transform 0.35s ease;
     }
 
-    /* 三角の外枠（2px感に調整） */
     .bubble::before {
       content: "";
       position: absolute;
@@ -176,7 +175,6 @@
       border-color: #444 transparent transparent;
     }
 
-    /* 三角の白い内側（外側との差を 2px に寄せる） */
     .bubble::after {
       content: "";
       position: absolute;
@@ -185,6 +183,27 @@
       border-width: 12px 10px 0;
       border-style: solid;
       border-color: rgba(255,255,255,0.95) transparent transparent;
+    }
+
+    .bubble.newborn {
+      animation-name: bubbleAppear, floatBubble;
+      animation-duration: 0.35s, var(--bubble-float-duration, 6s);
+      animation-delay: 0s, var(--bubble-float-delay, 0s);
+      animation-fill-mode: both, none;
+      animation-timing-function: ease-out, ease-in-out;
+      animation-iteration-count: 1, infinite;
+      animation-direction: normal, alternate;
+    }
+
+    @keyframes bubbleAppear {
+      0% {
+        opacity: 0;
+        transform: translateY(10px) scale(calc(var(--bubble-scale, 1) * 0.92));
+      }
+      100% {
+        opacity: var(--bubble-opacity, 1);
+        transform: translateY(0px) scale(var(--bubble-scale, 1));
+      }
     }
 
     @keyframes floatBubble {
@@ -260,6 +279,9 @@
   var stars = [];
   var shootingStars = [];
   var skyLoopStarted = false;
+
+  var bubbleMap = {};
+  var emptyBubbleKey = "__empty__";
 
   function setStatusLine(text) {
     statusLineEl.textContent = text;
@@ -520,6 +542,8 @@
   function applyBubbleAnimation(el, index, scatterKey) {
     var duration = 5 + (index % 5) * 0.8 + (scatterKey % 3) * 0.25;
     var delay = (index % 7) * 0.4;
+    el.style.setProperty("--bubble-float-duration", duration + "s");
+    el.style.setProperty("--bubble-float-delay", delay + "s");
     el.style.animationDuration = duration + "s";
     el.style.animationDelay = delay + "s";
   }
@@ -551,15 +575,95 @@
     el.style.marginBottom = bottomOffset + "px";
   }
 
-  var apiBaseUrl = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
-  var params = new URLSearchParams(window.location.search);
-  var source = params.get("source") || "default";
-  var session = params.get("session") || "";
-  var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
+  function buildMessageKeys(messages) {
+    var counts = {};
+    return messages.map(function(msg) {
+      var text = String(msg.text || "");
+      counts[text] = (counts[text] || 0) + 1;
+      return text + "__" + counts[text];
+    });
+  }
 
-  function renderMessages(messages) {
+  function createBubble(key, text, renderIndex, ageIndex, total, centerMode) {
+    var el = document.createElement("div");
+    el.className = "bubble newborn";
+    el.textContent = text;
+
+    var scatterKey = hashString(key);
+    var layerInfo = getLayerInfo(ageIndex, total);
+
+    el.style.zIndex = String(total - ageIndex);
+    el.style.setProperty("--bubble-scale", String(layerInfo.scale));
+    el.style.setProperty("--bubble-opacity", String(layerInfo.opacity));
+    el.style.opacity = String(layerInfo.opacity);
+
+    applyScatterStyle(el, scatterKey, centerMode, ageIndex);
+    applyBubbleAnimation(el, renderIndex, scatterKey);
+
+    el.style.order = String(renderIndex);
+    stage.appendChild(el);
+
+    setTimeout(function() {
+      if (el.classList.contains("newborn")) {
+        el.classList.remove("newborn");
+      }
+    }, 500);
+
+    bubbleMap[key] = {
+      el: el,
+      text: text
+    };
+  }
+
+  function updateBubble(key, text, renderIndex, ageIndex, total, centerMode) {
+    var item = bubbleMap[key];
+    var el = item.el;
+    var scatterKey = hashString(key);
+    var layerInfo = getLayerInfo(ageIndex, total);
+
+    if (item.text !== text) {
+      el.textContent = text;
+      item.text = text;
+    }
+
+    el.style.zIndex = String(total - ageIndex);
+    el.style.setProperty("--bubble-scale", String(layerInfo.scale));
+    el.style.setProperty("--bubble-opacity", String(layerInfo.opacity));
+    el.style.opacity = String(layerInfo.opacity);
+    el.style.order = String(renderIndex);
+
+    applyScatterStyle(el, scatterKey, centerMode, ageIndex);
+    applyBubbleAnimation(el, renderIndex, scatterKey);
+  }
+
+  function removeMissingBubbles(nextKeySet) {
+    Object.keys(bubbleMap).forEach(function(key) {
+      if (!nextKeySet.has(key)) {
+        bubbleMap[key].el.remove();
+        delete bubbleMap[key];
+      }
+    });
+  }
+
+  function clearPlaceholderIfNeeded() {
+    if (bubbleMap[emptyBubbleKey]) {
+      bubbleMap[emptyBubbleKey].el.remove();
+      delete bubbleMap[emptyBubbleKey];
+    }
+  }
+
+  function renderEmpty(centerMode) {
+    removeMissingBubbles(new Set([emptyBubbleKey]));
+
+    if (!bubbleMap[emptyBubbleKey]) {
+      createBubble(emptyBubbleKey, "messages が 0 件です", 0, 0, 1, centerMode);
+    } else {
+      updateBubble(emptyBubbleKey, "messages が 0 件です", 0, 0, 1, centerMode);
+    }
+  }
+
+  function syncMessages(messages) {
     var centerMode = messages.length > 0 && messages.length <= CENTER_MODE_THRESHOLD;
-    stage.innerHTML = "";
 
     if (centerMode) {
       stage.classList.add("center-mode");
@@ -568,48 +672,43 @@
     }
 
     if (messages.length === 0) {
-      var emptyEl = document.createElement("div");
-      emptyEl.className = "bubble";
-      emptyEl.textContent = "messages が 0 件です";
-      emptyEl.style.setProperty("--bubble-scale", "1");
-      emptyEl.style.opacity = "1";
-      emptyEl.style.zIndex = "1";
-      applyBubbleAnimation(emptyEl, 0, 0);
-      applyScatterStyle(emptyEl, 0, centerMode, 0);
-      stage.appendChild(emptyEl);
+      renderEmpty(centerMode);
       return;
     }
 
+    clearPlaceholderIfNeeded();
+
+    var keys = buildMessageKeys(messages);
     var visualItems = messages.map(function(msg, i) {
-      var text = String(msg.text || "");
       return {
-        text: text,
-        ageIndex: i,
-        scatterKey: hashString(text + "__" + i)
+        key: keys[i],
+        text: String(msg.text || ""),
+        ageIndex: i
       };
     });
 
     visualItems.sort(function(a, b) {
-      return a.scatterKey - b.scatterKey;
+      return hashString(a.key) - hashString(b.key);
     });
+
+    var nextKeySet = new Set(visualItems.map(function(item) { return item.key; }));
 
     visualItems.forEach(function(item, renderIndex) {
-      var layerInfo = getLayerInfo(item.ageIndex, messages.length);
-
-      var el = document.createElement("div");
-      el.className = "bubble";
-      el.textContent = item.text;
-
-      el.style.zIndex = String(messages.length - item.ageIndex);
-      el.style.setProperty("--bubble-scale", String(layerInfo.scale));
-      el.style.opacity = String(layerInfo.opacity);
-
-      applyScatterStyle(el, item.scatterKey, centerMode, item.ageIndex);
-      applyBubbleAnimation(el, renderIndex, item.scatterKey);
-
-      stage.appendChild(el);
+      if (!bubbleMap[item.key]) {
+        createBubble(item.key, item.text, renderIndex, item.ageIndex, messages.length, centerMode);
+      } else {
+        updateBubble(item.key, item.text, renderIndex, item.ageIndex, messages.length, centerMode);
+      }
     });
+
+    removeMissingBubbles(nextKeySet);
   }
+
+  var apiBaseUrl = "https://script.google.com/macros/s/AKfycbxMjaP_v9pUhkILWdtbDh7pBujrMNp3glAUBp18qutF6-b09VytSM9OMB2agWxWbKQe/exec";
+  var params = new URLSearchParams(window.location.search);
+  var source = params.get("source") || "default";
+  var session = params.get("session") || "";
+  var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
 
   async function updateMessages() {
     try {
@@ -641,11 +740,14 @@
       );
 
       if (!active) {
-        stage.innerHTML = "";
+        Object.keys(bubbleMap).forEach(function(key) {
+          bubbleMap[key].el.remove();
+        });
+        bubbleMap = {};
         return;
       }
 
-      renderMessages(messages);
+      syncMessages(messages);
 
     } catch (err) {
       setStatusLine(

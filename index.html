@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Voice Cloud Safe</title>
 
+  <!-- Google Fonts: Zen Kaku Gothic Antique -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -136,15 +137,14 @@
       letter-spacing: 0.01em;
     }
 
-    /* 最新1〜3件のための固定レイヤー
-       レイアウトの高さを消費しない */
+    /* 最新1〜3件の固定レイヤー */
     #featuredLayer {
       position: absolute;
       left: 50%;
       top: 34vh;
       transform: translateX(-50%);
       width: min(1000px, 92vw);
-      z-index: 12;
+      z-index: 50; /* ← 通常の吹き出し群より前 */
       pointer-events: none;
     }
 
@@ -155,6 +155,7 @@
       align-items: flex-start;
       gap: 0;
       width: 100%;
+      position: relative;
     }
 
     /* 通常の吹き出し群 */
@@ -166,6 +167,7 @@
       justify-content: center;
       gap: 0;
       position: relative;
+      z-index: 1; /* ← featuredLayer より後ろ */
       min-height: calc(100vh - 120px);
       padding-top: 6px;
     }
@@ -595,6 +597,14 @@
     return "#ffffff";
   }
 
+  function getBubbleZIndex(ageIndex, total) {
+    /* 最新1〜3件は常に最前面 */
+    if (total > CENTER_MODE_THRESHOLD && ageIndex <= 2) {
+      return 3000 - ageIndex;
+    }
+    return 1000 - ageIndex;
+  }
+
   function applyBubbleAnimation(el, index, scatterKey) {
     var duration = 5 + (index % 5) * 0.8 + (scatterKey % 3) * 0.25;
     var delay = (index % 7) * 0.4;
@@ -675,7 +685,7 @@
     var bubbleColor = getBubbleColor(ageIndex);
     var container = getContainerByAgeIndex(ageIndex, total);
 
-    el.style.zIndex = String(total - ageIndex);
+    el.style.zIndex = String(getBubbleZIndex(ageIndex, total));
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
     el.style.setProperty("--bubble-opacity", String(layerInfo.opacity));
     el.style.setProperty("--bubble-bg", bubbleColor);
@@ -719,7 +729,7 @@
 
     item.ageIndex = ageIndex;
 
-    el.style.zIndex = String(total - ageIndex);
+    el.style.zIndex = String(getBubbleZIndex(ageIndex, total));
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
     el.style.setProperty("--bubble-opacity", String(layerInfo.opacity));
     el.style.setProperty("--bubble-bg", bubbleColor);

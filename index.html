@@ -165,14 +165,26 @@
       margin-bottom: 4px;
     }
 
+    /* 三角の外枠 */
+    .bubble::before {
+      content: "";
+      position: absolute;
+      bottom: -16px;
+      left: 24px;
+      border-width: 16px 14px 0;
+      border-style: solid;
+      border-color: #444 transparent transparent;
+    }
+
+    /* 三角の白い内側 */
     .bubble::after {
       content: "";
       position: absolute;
-      bottom: -14px;
-      left: 28px;
-      border-width: 14px 12px 0;
+      bottom: -12px;
+      left: 27px;
+      border-width: 13px 11px 0;
       border-style: solid;
-      border-color: #444 transparent transparent;
+      border-color: rgba(255,255,255,0.95) transparent transparent;
     }
 
     @keyframes floatBubble {
@@ -379,8 +391,8 @@
     shootingStars = [];
 
     var isMobile = window.innerWidth <= 768;
-    var starCount = isMobile ? 56 : 96;   // 少し増やす
-    var shootingCount = isMobile ? 3 : 5; // 頻度変更（少し増やす）
+    var starCount = isMobile ? 56 : 96;
+    var shootingCount = isMobile ? 3 : 5;
 
     for (var i = 0; i < starCount; i++) {
       var starEl = document.createElement("div");

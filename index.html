@@ -6,9 +6,9 @@
   <title>Voice Cloud Safe</title>
 
   <!-- Google Fonts: Zen Kaku Gothic Antique -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  https://fonts.googleapis.com
+  https://fonts.gstatic.com
+  https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap
 
   <style>
     body {
@@ -503,7 +503,7 @@
 
     var isMobile = window.innerWidth <= 768;
     var starCount = isMobile ? 56 : 96;
-    var shootingCount = isMobile ? 3 : 5;
+    var shootingCount = isMobile ? 5 : 8;
 
     for (var i = 0; i < starCount; i++) {
       var starEl = document.createElement("div");
@@ -531,11 +531,14 @@
     }
 
     var configs = [
+      { start: 0.812, duration: 0.011, x: 12, y: 12 },
       { start: 0.828, duration: 0.012, x: 14, y: 14 },
-      { start: 0.854, duration: 0.012, x: 46, y: 10 },
+      { start: 0.846, duration: 0.012, x: 34, y: 11 },
+      { start: 0.864, duration: 0.012, x: 46, y: 10 },
       { start: 0.882, duration: 0.013, x: 66, y: 22 },
-      { start: 0.908, duration: 0.013, x: 28, y: 18 },
-      { start: 0.934, duration: 0.014, x: 74, y: 12 }
+      { start: 0.900, duration: 0.013, x: 28, y: 18 },
+      { start: 0.918, duration: 0.013, x: 58, y: 16 },
+      { start: 0.936, duration: 0.014, x: 74, y: 12 }
     ];
 
     for (var j = 0; j < shootingCount; j++) {

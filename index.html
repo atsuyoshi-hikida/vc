@@ -117,7 +117,7 @@
       z-index: 10;
       display: inline-block;
       max-width: calc(100vw - 40px);
-      margin-bottom: 14px;
+      margin-bottom: 10px;
       padding: 4px 10px;
       font-size: 12px;
       line-height: 1.4;
@@ -136,22 +136,44 @@
       letter-spacing: 0.01em;
     }
 
+    /* 最新1〜3件を置く中央エリア */
+    #featuredStageWrap {
+      min-height: 170px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2vh;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    #featuredStage {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 0;
+      max-width: min(1000px, 92vw);
+      position: relative;
+    }
+
+    /* 4件目以降を置く全体エリア */
     #stage {
       display: flex;
       flex-wrap: wrap;
       align-items: flex-start;
       align-content: flex-start;
-      justify-content: center; /* 常に中央寄せベース */
+      justify-content: center;
       gap: 0;
       position: relative;
-      min-height: calc(100vh - 80px);
-      padding-top: 8px;
+      min-height: calc(100vh - 250px);
+      padding-top: 4px;
     }
 
     #stage.center-mode {
       justify-content: center;
       align-content: center;
-      padding-top: 0;
+      min-height: calc(100vh - 190px);
     }
 
     .bubble {
@@ -252,12 +274,20 @@
         width: 2px;
       }
 
-      #stage {
-        min-height: calc(100vh - 70px);
-      }
-
       .shooting-star {
         width: 90px;
+      }
+
+      #featuredStageWrap {
+        min-height: 150px;
+      }
+
+      #stage {
+        min-height: calc(100vh - 220px);
+      }
+
+      #stage.center-mode {
+        min-height: calc(100vh - 170px);
       }
     }
   </style>
@@ -270,12 +300,18 @@
 
 <div id="ui">
   <div id="statusLine">status: loading...</div>
+
+  <div id="featuredStageWrap">
+    <div id="featuredStage"></div>
+  </div>
+
   <div id="stage"></div>
 </div>
 
 <script>
   var statusLineEl = document.getElementById("statusLine");
   var stage = document.getElementById("stage");
+  var featuredStage = document.getElementById("featuredStage");
   var rainEl = document.getElementById("rain");
   var starsEl = document.getElementById("stars");
   var skyEl = document.getElementById("sky");
@@ -573,7 +609,6 @@
       var centerRightOverlap = -8 - (scatterKey % 12);
       var centerBottom = (Math.floor(scatterKey / 100) % 8) - 2;
 
-      /* 新しい 1〜3件は中央に寄せる */
       if (ageIndex === 0) {
         centerLeft = centerLeft * 0.35;
         centerTop = centerTop * 0.35;
@@ -589,7 +624,6 @@
       return;
     }
 
-    /* 通常時も新しい 1〜3件はあまり端に行かないように寄せる */
     var topOffset = (scatterKey % 41) - 20;
     var leftOffset = (Math.floor(scatterKey / 10) % 25) - 12;
     var rightOverlap = -10 - (scatterKey % 25);
@@ -622,6 +656,10 @@
     });
   }
 
+  function getContainerByAgeIndex(ageIndex) {
+    return ageIndex <= 2 ? featuredStage : stage;
+  }
+
   function createBubble(key, text, renderIndex, ageIndex, total, centerMode) {
     var el = document.createElement("div");
     el.className = "bubble newborn";
@@ -630,6 +668,7 @@
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
     var bubbleColor = getBubbleColor(ageIndex);
+    var container = getContainerByAgeIndex(ageIndex);
 
     el.style.zIndex = String(total - ageIndex);
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
@@ -641,7 +680,7 @@
     applyBubbleAnimation(el, renderIndex, scatterKey);
 
     el.style.order = String(renderIndex);
-    stage.appendChild(el);
+    container.appendChild(el);
 
     setTimeout(function() {
       if (el.classList.contains("newborn")) {
@@ -651,7 +690,8 @@
 
     bubbleMap[key] = {
       el: el,
-      text: text
+      text: text,
+      ageIndex: ageIndex
     };
   }
 
@@ -661,11 +701,18 @@
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
     var bubbleColor = getBubbleColor(ageIndex);
+    var container = getContainerByAgeIndex(ageIndex);
 
     if (item.text !== text) {
       el.textContent = text;
       item.text = text;
     }
+
+    if (el.parentNode !== container) {
+      container.appendChild(el);
+    }
+
+    item.ageIndex = ageIndex;
 
     el.style.zIndex = String(total - ageIndex);
     el.style.setProperty("--bubble-scale", String(layerInfo.scale));
@@ -739,18 +786,15 @@
       }
     });
 
-    /* 新しい 1〜3件は先頭に固定 */
     newestItems.sort(function(a, b) {
       return a.ageIndex - b.ageIndex;
     });
 
-    /* それ以降は散らす */
     otherItems.sort(function(a, b) {
       return hashString(a.key) - hashString(b.key);
     });
 
     var visualItems = newestItems.concat(otherItems);
-
     var nextKeySet = new Set(visualItems.map(function(item) { return item.key; }));
 
     visualItems.forEach(function(item, renderIndex) {

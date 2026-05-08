@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
 
-  <!-- viewport: safe-area まで使う -->
+  <!-- viewport / safe-area -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <title>Voice Cloud Safe</title>
@@ -31,6 +31,7 @@
     }
 
     body {
+      margin: 0;
       padding: 20px;
       font-family: "Zen Kaku Gothic Antique", sans-serif;
       font-weight: 400;
@@ -219,7 +220,7 @@
       letter-spacing: 0.01em;
       pointer-events: none;
 
-      /* ★ escape 用（transform に干渉しない） */
+      /* escape は transform を壊さないため translate を利用 */
       translate: 0 0;
     }
 
@@ -317,7 +318,7 @@
       }
     }
 
-    /* ★ タップで「やさしく逃げる」：translate だけ動かす + フェード */
+    /* タップで「やさしく逃げる」：translate だけ動かす + フェード */
     .bubble.escape {
       opacity: 0;
       translate: var(--escape-x, 0px) var(--escape-y, 0px);
@@ -368,6 +369,7 @@
     }
   </style>
 </head>
+
 <body>
 
 <div id="sky"></div>
@@ -410,7 +412,6 @@
 
   /* 標準ショートコード → Unicode 絵文字（拡張版） */
   var STANDARD_EMOJI_MAP = {
-    /* hearts */
     heart: "❤️",
     hearts: "💕",
     orange_heart: "🧡",
@@ -432,7 +433,6 @@
     cupid: "💘",
     heart_decoration: "💟",
 
-    /* faces */
     grinning: "😀",
     smile: "😄",
     smiley: "😃",
@@ -487,7 +487,6 @@
     ghost: "👻",
     robot_face: "🤖",
 
-    /* hands / gestures */
     thumbsup: "👍",
     "+1": "👍",
     thumbsdown: "👎",
@@ -508,7 +507,6 @@
     call_me_hand: "🤙",
     writing_hand: "✍️",
 
-    /* reactions / emphasis */
     eyes: "👀",
     fire: "🔥",
     sparkles: "✨",
@@ -535,7 +533,6 @@
     white_check_mark: "✅",
     warning: "⚠️",
 
-    /* celebration */
     tada: "🎉",
     confetti_ball: "🎊",
     balloon: "🎈",
@@ -552,7 +549,6 @@
     third_place_medal: "🥉",
     crown: "👑",
 
-    /* symbols / luck */
     rainbow: "🌈",
     sun_with_face: "🌞",
     full_moon: "🌕",
@@ -568,7 +564,6 @@
     eight_pointed_black_star: "✴️",
     sparkles_alt: "❇️",
 
-    /* food / drink */
     coffee: "☕",
     tea: "🍵",
     beer: "🍺",
@@ -596,7 +591,6 @@
     banana: "🍌",
     cherry_blossom: "🌸",
 
-    /* animals */
     cat: "🐱",
     dog: "🐶",
     mouse: "🐭",
@@ -629,7 +623,6 @@
     bee: "🐝",
     lady_beetle: "🐞",
 
-    /* objects */
     camera: "📷",
     video_camera: "📹",
     movie_camera: "🎥",
@@ -657,7 +650,6 @@
     hourglass_flowing_sand: "⏳",
     alarm_clock: "⏰",
 
-    /* travel / places */
     car: "🚗",
     taxi: "🚕",
     bus: "🚌",
@@ -674,7 +666,6 @@
     bridge_at_night: "🌉",
     milky_way: "🌌",
 
-    /* nature */
     cherry_blossom_2: "🌸",
     blossom: "🌼",
     hibiscus: "🌺",
@@ -691,7 +682,6 @@
     evergreen_tree: "🌲",
     deciduous_tree: "🌳",
 
-    /* flags / misc */
     japan: "🗾",
     crossed_flags: "🎌",
     checkered_flag: "🏁",
@@ -1340,11 +1330,18 @@
   });
 
   /* ===============================
-     ▶ タップで「やさしく逃げる」＋連打防止
+     タップで「やさしく逃げる」＋ 連打防止 ＋ 群れ感で戻る
      =============================== */
 
+  var scatterToken = 0;
+
   function scatterBubblesSoft(clientX, clientY) {
+    scatterToken++;
+    var token = scatterToken;
+
     var bubbles = document.querySelectorAll(".bubble");
+
+    // 逃げる：全員一斉に
     for (var i = 0; i < bubbles.length; i++) {
       var el = bubbles[i];
       var rect = el.getBoundingClientRect();
@@ -1361,18 +1358,24 @@
       var power = 80 + Math.random() * 40; // やさしい距離
       el.style.setProperty("--escape-x", (nx * power).toFixed(1) + "px");
       el.style.setProperty("--escape-y", (ny * power).toFixed(1) + "px");
-
       el.classList.add("escape");
     }
 
-    setTimeout(function() {
-      for (var j = 0; j < bubbles.length; j++) {
-        var el2 = bubbles[j];
-        el2.classList.remove("escape");
-        el2.style.removeProperty("--escape-x");
-        el2.style.removeProperty("--escape-y");
-      }
-    }, 900);
+    // 戻る：群れ感（900ms + 50〜300ms を個体差）
+    var baseReturnMs = 900;
+    for (var j = 0; j < bubbles.length; j++) {
+      (function(el){
+        var jitter = 50 + Math.random() * 250; // 50〜300ms
+        setTimeout(function(){
+          // 古い散開のタイマーが後から走っても壊さない
+          if (token !== scatterToken) return;
+
+          el.classList.remove("escape");
+          el.style.removeProperty("--escape-x");
+          el.style.removeProperty("--escape-y");
+        }, baseReturnMs + jitter);
+      })(bubbles[j]);
+    }
   }
 
   var escapeLock = false;
@@ -1382,18 +1385,18 @@
 
     scatterBubblesSoft(e.clientX, e.clientY);
 
+    // 連打防止解除は最大戻り（900+300=1200）に合わせる
     setTimeout(function() {
       escapeLock = false;
     }, 1200);
   });
 
   /* ===============================
-     ▶ Service Worker（PWA）
+     Service Worker（PWA）
      =============================== */
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function() {
       navigator.serviceWorker.register("./sw.js").catch(function(err) {
-        // 表示を壊さないため console のみに出す
         console.warn("SW register failed:", err);
       });
     });

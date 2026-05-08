@@ -381,6 +381,296 @@
   var emptyBubbleKey = "__empty__";
   var currentEmojiMap = {};
 
+  /* 標準ショートコード → Unicode 絵文字（拡張版） */
+  var STANDARD_EMOJI_MAP = {
+    /* hearts */
+    heart: "❤️",
+    hearts: "💕",
+    orange_heart: "🧡",
+    yellow_heart: "💛",
+    green_heart: "💚",
+    blue_heart: "💙",
+    purple_heart: "💜",
+    black_heart: "🖤",
+    white_heart: "🤍",
+    brown_heart: "🤎",
+    broken_heart: "💔",
+    sparkling_heart: "💖",
+    two_hearts: "💕",
+    revolving_hearts: "💞",
+    heartbeat: "💓",
+    heartpulse: "💗",
+    growing_heart: "💗",
+    gift_heart: "💝",
+    cupid: "💘",
+    heart_decoration: "💟",
+
+    /* faces */
+    grinning: "😀",
+    smile: "😄",
+    smiley: "😃",
+    grin: "😁",
+    laughing: "😆",
+    sweat_smile: "😅",
+    joy: "😂",
+    rofl: "🤣",
+    slightly_smiling_face: "🙂",
+    slight_smile: "🙂",
+    upside_down_face: "🙃",
+    wink: "😉",
+    blush: "😊",
+    innocent: "😇",
+    smiling_face_with_3_hearts: "🥰",
+    heart_eyes: "😍",
+    star_struck: "🤩",
+    kissing_heart: "😘",
+    thinking_face: "🤔",
+    thinking: "🤔",
+    neutral_face: "😐",
+    expressionless: "😑",
+    no_mouth: "😶",
+    smirk: "😏",
+    confused: "😕",
+    worried: "😟",
+    frowning: "😦",
+    disappointed: "😞",
+    cry: "😢",
+    sob: "😭",
+    scream: "😱",
+    astonished: "😲",
+    flushed: "😳",
+    cold_sweat: "😰",
+    fearful: "😨",
+    weary: "😩",
+    tired_face: "😫",
+    sleepy: "😪",
+    sleeping: "😴",
+    dizzy_face: "😵",
+    exploding_head: "🤯",
+    zany_face: "🤪",
+    face_with_raised_eyebrow: "🤨",
+    pleading_face: "🥺",
+    relieved: "😌",
+    yum: "😋",
+    sunglasses: "😎",
+    nerd_face: "🤓",
+    poop: "💩",
+    skull: "💀",
+    clown_face: "🤡",
+    ghost: "👻",
+    robot_face: "🤖",
+
+    /* hands / gestures */
+    thumbsup: "👍",
+    "+1": "👍",
+    thumbsdown: "👎",
+    "-1": "👎",
+    clap: "👏",
+    raised_hands: "🙌",
+    pray: "🙏",
+    muscle: "💪",
+    wave: "👋",
+    ok_hand: "👌",
+    pinched_fingers: "🤌",
+    point_up: "☝️",
+    point_down: "👇",
+    point_left: "👈",
+    point_right: "👉",
+    v: "✌️",
+    metal: "🤘",
+    call_me_hand: "🤙",
+    writing_hand: "✍️",
+
+    /* reactions / emphasis */
+    eyes: "👀",
+    fire: "🔥",
+    sparkles: "✨",
+    star: "⭐",
+    stars: "🌟",
+    dizzy: "💫",
+    collision: "💥",
+    boom: "💥",
+    anger: "💢",
+    dash: "💨",
+    sweat_drops: "💦",
+    zzz: "💤",
+    speech_balloon: "💬",
+    thought_balloon: "💭",
+    exclamation: "❗",
+    grey_exclamation: "❕",
+    question: "❓",
+    grey_question: "❔",
+    interrobang: "⁉️",
+    bangbang: "‼️",
+    o: "⭕",
+    x: "❌",
+    heavy_check_mark: "✔️",
+    white_check_mark: "✅",
+    warning: "⚠️",
+
+    /* celebration */
+    tada: "🎉",
+    confetti_ball: "🎊",
+    balloon: "🎈",
+    gift: "🎁",
+    wrapped_gift: "🎁",
+    sparkler: "🎇",
+    fireworks: "🎆",
+    partying_face: "🥳",
+    trophy: "🏆",
+    medal: "🏅",
+    sports_medal: "🏅",
+    first_place_medal: "🥇",
+    second_place_medal: "🥈",
+    third_place_medal: "🥉",
+    crown: "👑",
+
+    /* symbols / luck */
+    rainbow: "🌈",
+    sun_with_face: "🌞",
+    full_moon: "🌕",
+    crescent_moon: "🌙",
+    cloud: "☁️",
+    umbrella: "☔",
+    snowflake: "❄️",
+    lightning: "⚡",
+    zap: "⚡",
+    cyclone: "🌀",
+    trident: "🔱",
+    crystal_ball: "🔮",
+    eight_pointed_black_star: "✴️",
+    sparkles_alt: "❇️",
+
+    /* food / drink */
+    coffee: "☕",
+    tea: "🍵",
+    beer: "🍺",
+    beers: "🍻",
+    wine_glass: "🍷",
+    cocktail: "🍸",
+    tropical_drink: "🍹",
+    sushi: "🍣",
+    bento: "🍱",
+    ramen: "🍜",
+    curry: "🍛",
+    pizza: "🍕",
+    hamburger: "🍔",
+    fries: "🍟",
+    cake: "🍰",
+    birthday: "🎂",
+    doughnut: "🍩",
+    cookie: "🍪",
+    apple: "🍎",
+    green_apple: "🍏",
+    strawberry: "🍓",
+    watermelon: "🍉",
+    peach: "🍑",
+    grapes: "🍇",
+    banana: "🍌",
+    cherry_blossom: "🌸",
+
+    /* animals */
+    cat: "🐱",
+    dog: "🐶",
+    mouse: "🐭",
+    hamster: "🐹",
+    rabbit: "🐰",
+    fox_face: "🦊",
+    bear: "🐻",
+    panda_face: "🐼",
+    koala: "🐨",
+    tiger: "🐯",
+    lion_face: "🦁",
+    cow: "🐮",
+    pig: "🐷",
+    frog: "🐸",
+    monkey_face: "🐵",
+    chicken: "🐔",
+    penguin: "🐧",
+    bird: "🐦",
+    duck: "🦆",
+    owl: "🦉",
+    unicorn_face: "🦄",
+    dragon: "🐉",
+    whale: "🐳",
+    dolphin: "🐬",
+    octopus: "🐙",
+    fish: "🐟",
+    butterfly: "🦋",
+    snail: "🐌",
+    ant: "🐜",
+    bee: "🐝",
+    lady_beetle: "🐞",
+
+    /* objects */
+    camera: "📷",
+    video_camera: "📹",
+    movie_camera: "🎥",
+    computer: "💻",
+    laptop: "💻",
+    iphone: "📱",
+    calling: "📲",
+    headphones: "🎧",
+    microphone: "🎤",
+    musical_note: "🎵",
+    notes: "🎶",
+    radio: "📻",
+    tv: "📺",
+    bulb: "💡",
+    flashlight: "🔦",
+    book: "📖",
+    books: "📚",
+    pencil: "✏️",
+    memo: "📝",
+    package: "📦",
+    key: "🔑",
+    lock: "🔒",
+    unlock: "🔓",
+    mag: "🔍",
+    hourglass_flowing_sand: "⏳",
+    alarm_clock: "⏰",
+
+    /* travel / places */
+    car: "🚗",
+    taxi: "🚕",
+    bus: "🚌",
+    train: "🚆",
+    bullettrain_side: "🚄",
+    airplane: "✈️",
+    rocket: "🚀",
+    ship: "🚢",
+    ferris_wheel: "🎡",
+    roller_coaster: "🎢",
+    tent: "⛺",
+    camping: "🏕️",
+    cityscape: "🏙️",
+    bridge_at_night: "🌉",
+    milky_way: "🌌",
+
+    /* nature */
+    cherry_blossom_2: "🌸",
+    blossom: "🌼",
+    hibiscus: "🌺",
+    sunflower: "🌻",
+    rose: "🌹",
+    tulip: "🌷",
+    four_leaf_clover: "🍀",
+    maple_leaf: "🍁",
+    fallen_leaf: "🍂",
+    herb: "🌿",
+    cactus: "🌵",
+    palm_tree: "🌴",
+    seedling: "🌱",
+    evergreen_tree: "🌲",
+    deciduous_tree: "🌳",
+
+    /* flags / misc */
+    japan: "🗾",
+    crossed_flags: "🎌",
+    checkered_flag: "🏁",
+    triangular_flag_on_post: "🚩"
+  };
+
   function setStatusLine(text) {
     statusLineEl.textContent = text;
   }
@@ -745,6 +1035,17 @@
     }
   }
 
+  function appendStandardEmojiOrRaw(parent, shortcodeToken) {
+    var name = shortcodeToken.slice(1, -1);
+    var unicodeEmoji = STANDARD_EMOJI_MAP[name];
+
+    if (unicodeEmoji) {
+      parent.appendChild(document.createTextNode(unicodeEmoji));
+    } else {
+      appendTextWithBreaks(parent, shortcodeToken);
+    }
+  }
+
   function renderMessageContent(el, text) {
     el.textContent = "";
 
@@ -772,7 +1073,7 @@
         img.decoding = "async";
         el.appendChild(img);
       } else {
-        appendTextWithBreaks(el, fullMatch);
+        appendStandardEmojiOrRaw(el, fullMatch);
       }
 
       lastIndex = regex.lastIndex;
@@ -832,13 +1133,8 @@
     var container = getContainerByAgeIndex(ageIndex, total);
     var extraClass = getFeaturedClass(ageIndex, total);
 
-    if (item.text !== text) {
-      renderMessageContent(el, text);
-      item.text = text;
-    } else {
-      /* emojiMap が更新された場合にも再描画できるように毎回反映 */
-      renderMessageContent(el, text);
-    }
+    renderMessageContent(el, text);
+    item.text = text;
 
     el.className = "bubble" + (el.classList.contains("newborn") ? " newborn" : "") + (extraClass ? " " + extraClass : "");
 
@@ -1019,3 +1315,4 @@
 
 </body>
 </html>
+``

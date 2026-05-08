@@ -2,8 +2,21 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- viewport: safe-area まで使う -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
   <title>Voice Cloud Safe</title>
+
+  <!-- PWA / iOS -->
+  <meta name="theme-color" content="#d8ecff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Voice Cloud Safe">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="./manifest.json">
 
   <!-- Google Fonts: Zen Kaku Gothic Antique -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,8 +24,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
-    body {
+    html, body {
+      height: 100%;
       margin: 0;
+      overscroll-behavior: none;
+    }
+
+    body {
       padding: 20px;
       font-family: "Zen Kaku Gothic Antique", sans-serif;
       font-weight: 400;
@@ -187,7 +205,7 @@
       overflow-wrap: anywhere;
       line-height: 1.65;
       position: relative;
-      will-change: transform, opacity;
+      will-change: transform, opacity, translate;
       animation-name: floatBubble;
       animation-timing-function: ease-in-out;
       animation-iteration-count: infinite;
@@ -195,11 +213,14 @@
       transform-origin: center center;
       margin-right: -20px;
       margin-bottom: 4px;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.35s ease, transform 0.35s ease, translate 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
       font-family: "Zen Kaku Gothic Antique", sans-serif;
       font-weight: 400;
       letter-spacing: 0.01em;
       pointer-events: none;
+
+      /* ★ escape 用（transform に干渉しない） */
+      translate: 0 0;
     }
 
     .bubble::before {
@@ -294,6 +315,12 @@
       100% {
         transform: translate(-4px, 2px) scale(var(--bubble-scale, 1));
       }
+    }
+
+    /* ★ タップで「やさしく逃げる」：translate だけ動かす + フェード */
+    .bubble.escape {
+      opacity: 0;
+      translate: var(--escape-x, 0px) var(--escape-y, 0px);
     }
 
     @media (max-width: 768px) {
@@ -1311,6 +1338,66 @@
     buildRain(nowMs);
     buildStars();
   });
+
+  /* ===============================
+     ▶ タップで「やさしく逃げる」＋連打防止
+     =============================== */
+
+  function scatterBubblesSoft(clientX, clientY) {
+    var bubbles = document.querySelectorAll(".bubble");
+    for (var i = 0; i < bubbles.length; i++) {
+      var el = bubbles[i];
+      var rect = el.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2;
+      var cy = rect.top + rect.height / 2;
+
+      var dx = cx - clientX;
+      var dy = cy - clientY;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+      var nx = dx / dist;
+      var ny = dy / dist;
+
+      var power = 80 + Math.random() * 40; // やさしい距離
+      el.style.setProperty("--escape-x", (nx * power).toFixed(1) + "px");
+      el.style.setProperty("--escape-y", (ny * power).toFixed(1) + "px");
+
+      el.classList.add("escape");
+    }
+
+    setTimeout(function() {
+      for (var j = 0; j < bubbles.length; j++) {
+        var el2 = bubbles[j];
+        el2.classList.remove("escape");
+        el2.style.removeProperty("--escape-x");
+        el2.style.removeProperty("--escape-y");
+      }
+    }, 900);
+  }
+
+  var escapeLock = false;
+  document.addEventListener("click", function(e) {
+    if (escapeLock) return;
+    escapeLock = true;
+
+    scatterBubblesSoft(e.clientX, e.clientY);
+
+    setTimeout(function() {
+      escapeLock = false;
+    }, 1200);
+  });
+
+  /* ===============================
+     ▶ Service Worker（PWA）
+     =============================== */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function() {
+      navigator.serviceWorker.register("./sw.js").catch(function(err) {
+        // 表示を壊さないため console のみに出す
+        console.warn("SW register failed:", err);
+      });
+    });
+  }
 </script>
 
 </body>

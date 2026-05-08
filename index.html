@@ -6,9 +6,9 @@
   <title>Voice Cloud Safe</title>
 
   <!-- Google Fonts: Zen Kaku Gothic Antique -->
-  https://fonts.googleapis.com
-  https://fonts.gstatic.com
-  https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+Antique:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
     body {
@@ -184,6 +184,7 @@
       border-radius: 16px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
       word-break: break-word;
+      overflow-wrap: anywhere;
       line-height: 1.65;
       position: relative;
       will-change: transform, opacity;
@@ -255,6 +256,15 @@
       left: calc(50% + 180px);
       top: 92px;
       transform: translateX(-50%);
+    }
+
+    .emoji-img {
+      display: inline-block;
+      width: 1.22em;
+      height: 1.22em;
+      vertical-align: -0.22em;
+      margin: 0 0.04em;
+      object-fit: contain;
     }
 
     @keyframes bubbleAppear {
@@ -369,6 +379,7 @@
 
   var bubbleMap = {};
   var emptyBubbleKey = "__empty__";
+  var currentEmojiMap = {};
 
   function setStatusLine(text) {
     statusLineEl.textContent = text;
@@ -722,6 +733,56 @@
     return stage;
   }
 
+  function appendTextWithBreaks(parent, text) {
+    var parts = String(text).split("\n");
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i]) {
+        parent.appendChild(document.createTextNode(parts[i]));
+      }
+      if (i < parts.length - 1) {
+        parent.appendChild(document.createElement("br"));
+      }
+    }
+  }
+
+  function renderMessageContent(el, text) {
+    el.textContent = "";
+
+    var raw = String(text || "");
+    var regex = /:([a-zA-Z0-9_+\-]+):/g;
+    var lastIndex = 0;
+    var match;
+
+    while ((match = regex.exec(raw)) !== null) {
+      var fullMatch = match[0];
+      var emojiName = match[1];
+      var emojiUrl = currentEmojiMap[emojiName];
+
+      if (match.index > lastIndex) {
+        appendTextWithBreaks(el, raw.slice(lastIndex, match.index));
+      }
+
+      if (emojiUrl) {
+        var img = document.createElement("img");
+        img.className = "emoji-img";
+        img.src = emojiUrl;
+        img.alt = fullMatch;
+        img.title = fullMatch;
+        img.loading = "lazy";
+        img.decoding = "async";
+        el.appendChild(img);
+      } else {
+        appendTextWithBreaks(el, fullMatch);
+      }
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < raw.length) {
+      appendTextWithBreaks(el, raw.slice(lastIndex));
+    }
+  }
+
   function createBubble(key, text, renderIndex, ageIndex, total, centerMode) {
     var el = document.createElement("div");
     el.className = "bubble newborn";
@@ -730,7 +791,7 @@
       el.className += " " + extraClass;
     }
 
-    el.textContent = text;
+    renderMessageContent(el, text);
 
     var scatterKey = hashString(key);
     var layerInfo = getLayerInfo(ageIndex, total);
@@ -772,8 +833,11 @@
     var extraClass = getFeaturedClass(ageIndex, total);
 
     if (item.text !== text) {
-      el.textContent = text;
+      renderMessageContent(el, text);
       item.text = text;
+    } else {
+      /* emojiMap が更新された場合にも再描画できるように毎回反映 */
+      renderMessageContent(el, text);
     }
 
     el.className = "bubble" + (el.classList.contains("newborn") ? " newborn" : "") + (extraClass ? " " + extraClass : "");
@@ -894,6 +958,7 @@
       var messages = Array.isArray(data.messages) ? data.messages : [];
       var reason = data.reason || "-";
       var serverNow = typeof data.serverNow === "number" ? data.serverNow : Date.now();
+      currentEmojiMap = (data && typeof data.emojiMap === "object" && data.emojiMap) ? data.emojiMap : {};
 
       syncedServerNowMs = serverNow;
       syncedClientStartMs = Date.now();
@@ -911,6 +976,7 @@
         " | active=" + active +
         " | messages=" + messages.length +
         " | reason=" + reason +
+        " | emoji=" + Object.keys(currentEmojiMap).length +
         " | sync=server"
       );
 

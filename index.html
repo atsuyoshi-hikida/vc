@@ -30,9 +30,22 @@
       overscroll-behavior: none;
     }
 
+    /* ---- safe-area を考慮したUIパディングをCSS変数で管理 ---- */
+    :root {
+      --pad: 20px;
+      --pad-top: calc(var(--pad) + env(safe-area-inset-top));
+      --pad-right: calc(var(--pad) + env(safe-area-inset-right));
+      --pad-bottom: calc(var(--pad) + env(safe-area-inset-bottom));
+      --pad-left: calc(var(--pad) + env(safe-area-inset-left));
+    }
+
+    @media (max-width: 768px) {
+      :root { --pad: 14px; }
+    }
+
     body {
       margin: 0;
-      padding: 20px;
+      padding: 0; /* ★ bodyの余白は0：背景が「端まで」になり、全面表示感が増える */
       font-family: "Zen Kaku Gothic Antique", sans-serif;
       font-weight: 400;
       overflow: hidden;
@@ -128,7 +141,13 @@
     #ui {
       position: relative;
       z-index: 1;
-      min-height: calc(100vh - 40px);
+
+      /* ★ 以前 body にあった padding を #ui に移動（safe-area込み） */
+      padding: var(--pad-top) var(--pad-right) var(--pad-bottom) var(--pad-left);
+      box-sizing: border-box;
+
+      /* ★ 以前の calc(100vh - 40px) は「body padding前提」だったので 100vh に */
+      min-height: 100vh;
     }
 
     #statusLine {
@@ -136,7 +155,10 @@
       top: 0;
       z-index: 20;
       display: inline-block;
-      max-width: calc(100vw - 40px);
+
+      /* ★ UIパディング分を引く（左右の safe-area も含む） */
+      max-width: calc(100vw - (var(--pad-left) + var(--pad-right)));
+
       margin-bottom: 10px;
       padding: 4px 10px;
       font-size: 12px;
@@ -185,14 +207,17 @@
       gap: 0;
       position: relative;
       z-index: 1;
-      min-height: calc(100vh - 120px);
+
+      /* ★ UIパディングを考慮して高さを調整（全面表示感が崩れにくい） */
+      min-height: calc(100vh - (var(--pad-top) + var(--pad-bottom)) - 120px);
+
       padding-top: 6px;
     }
 
     #stage.center-mode {
       justify-content: center;
       align-content: center;
-      min-height: calc(100vh - 140px);
+      min-height: calc(100vh - (var(--pad-top) + var(--pad-bottom)) - 140px);
     }
 
     .bubble {
@@ -323,50 +348,6 @@
       opacity: 0;
       translate: var(--escape-x, 0px) var(--escape-y, 0px);
     }
-
-    @media (max-width: 768px) {
-      body {
-        padding: 14px;
-      }
-
-      #statusLine {
-        max-width: calc(100vw - 28px);
-        font-size: 11px;
-      }
-
-      .raindrop {
-        height: 44px;
-        width: 2px;
-      }
-
-      .shooting-star {
-        width: 90px;
-      }
-
-      #featuredLayer {
-        top: 28vh;
-        width: min(96vw, 760px);
-        height: 190px;
-      }
-
-      .featured-second {
-        left: calc(50% - 95px);
-        top: 82px;
-      }
-
-      .featured-third {
-        left: calc(50% + 95px);
-        top: 82px;
-      }
-
-      #stage {
-        min-height: calc(100vh - 100px);
-      }
-
-      #stage.center-mode {
-        min-height: calc(100vh - 120px);
-      }
-    }
   </style>
 </head>
 
@@ -387,6 +368,42 @@
 </div>
 
 <script>
+  /* ===============================
+     PWA起動時の「クエリ違い」対策：
+     - 最後に成功した source/session を保存
+     - start_url が default でも、保存済みがあれば自動復元
+     =============================== */
+
+  (function restoreQueryForPwa() {
+    try {
+      var p = new URLSearchParams(window.location.search);
+      var curSource = p.get("source") || "";
+      var curSession = p.get("session") || "";
+
+      var saved = localStorage.getItem("vcs:lastQuery") || "";
+
+      // savedがあり、今が「default+空session」またはクエリ不足なら savedへ寄せる
+      // ループ防止：savedが現在と同一なら何もしない
+      var curQs = p.toString();
+      var isMissing = !(p.has("source") && p.has("session"));
+      var isDefaultEmpty = (curSource === "default" && curSession === "");
+      var shouldRedirect = saved && (isMissing || isDefaultEmpty) && (saved !== curQs);
+
+      if (shouldRedirect) {
+        var target = window.location.pathname + "?" + saved;
+        window.location.replace(target);
+        return;
+      }
+
+      // 現在のクエリ（source/sessionがある場合）を保存
+      if (p.has("source") && p.has("session")) {
+        localStorage.setItem("vcs:lastQuery", p.toString());
+      }
+    } catch (e) {
+      // 保存/復元に失敗しても表示を壊さない
+    }
+  })();
+
   var statusLineEl = document.getElementById("statusLine");
   var stage = document.getElementById("stage");
   var featuredStage = document.getElementById("featuredStage");
@@ -1260,6 +1277,12 @@
   var params = new URLSearchParams(window.location.search);
   var source = params.get("source") || "default";
   var session = params.get("session") || "";
+
+  // ★ source/session を常に保存（PWA復元用）
+  try {
+    localStorage.setItem("vcs:lastQuery", "source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session));
+  } catch(e) {}
+
   var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
 
   async function updateMessages() {
@@ -1367,9 +1390,7 @@
       (function(el){
         var jitter = 50 + Math.random() * 250; // 50〜300ms
         setTimeout(function(){
-          // 古い散開のタイマーが後から走っても壊さない
           if (token !== scatterToken) return;
-
           el.classList.remove("escape");
           el.style.removeProperty("--escape-x");
           el.style.removeProperty("--escape-y");
@@ -1385,7 +1406,6 @@
 
     scatterBubblesSoft(e.clientX, e.clientY);
 
-    // 連打防止解除は最大戻り（900+300=1200）に合わせる
     setTimeout(function() {
       escapeLock = false;
     }, 1200);

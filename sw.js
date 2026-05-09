@@ -1,4 +1,4 @@
-const CACHE_NAME = "vcs-shell-v5";
+const CACHE_NAME = "vcs-shell-v6";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,12 +29,12 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // GAS APIは常にネットワーク（キャッシュしない）
+  // GAS API は常にネットワーク（キャッシュしない）
   if (url.hostname.includes("script.google.com")) {
     return;
   }
 
-  // ナビゲーション（index.html表示）は network-first（更新優先）
+  // ナビゲーションは network-first（更新優先）
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req).catch(() => caches.match("./index.html"))
@@ -42,7 +42,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 同一オリジンの静的ファイルは cache-first
+  // 同一オリジンの静的は cache-first
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(req).then((cached) => {

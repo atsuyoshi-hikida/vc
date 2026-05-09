@@ -3,10 +3,10 @@
   "short_name": "VCS",
   "start_url": "./index.html?source=default&session=",
   "scope": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#d8ecff",
-  "theme_color": "#d8ecff",
+  "background_color": "#d8efff",
+  "theme_color": "#d8efff",
   "icons": [
     {
       "src": "icon-192.png",

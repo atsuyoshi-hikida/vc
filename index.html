@@ -9,7 +9,7 @@
   <title>Voice Cloud Safe</title>
 
   <!-- PWA / iOS -->
-  <meta name="theme-color" content="#d8ecff">
+  <meta name="theme-color" content="#d8efff" id="themeColorMeta">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Voice Cloud Safe">
@@ -368,6 +368,50 @@
 </div>
 
 <script>
+  /* ===============================
+     Androidの黒帯を“空の色”へ溶かす：
+     meta[name="theme-color"] を空の上端色に追従
+     =============================== */
+  var themeColorMetaEl = document.getElementById("themeColorMeta");
+  var lastThemeColor = "";
+  var lastThemeUpdateMs = 0;
+
+  function rgbToHex(r, g, b) {
+    function to2(n) {
+      var s = n.toString(16);
+      return s.length === 1 ? "0" + s : s;
+    }
+    return "#" + to2(r) + to2(g) + to2(b);
+  }
+
+  function luminance(r, g, b) {
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  }
+
+  function setThemeColorSoft(rgbArr, nowMs) {
+    // 更新頻度を抑える（過負荷防止＆端末差の吸収）
+    if ((nowMs - lastThemeUpdateMs) < 500) return;
+
+    var r = rgbArr[0], g = rgbArr[1], b = rgbArr[2];
+
+    // 暗すぎる時は少しだけ持ち上げ（ステータスバーアイコン視認性の保険）
+    var lum = luminance(r, g, b);
+    if (lum < 0.12) {
+      r = Math.round(r * 0.85 + 30);
+      g = Math.round(g * 0.85 + 30);
+      b = Math.round(b * 0.85 + 30);
+    }
+
+    var hex = rgbToHex(r, g, b);
+    if (hex === lastThemeColor) return;
+
+    if (themeColorMetaEl) {
+      themeColorMetaEl.setAttribute("content", hex);
+    }
+    lastThemeColor = hex;
+    lastThemeUpdateMs = nowMs;
+  }
+
   /* ===============================
      PWA起動時の「クエリ違い」対策：
      - 最後に成功した source/session を保存
@@ -909,6 +953,9 @@
       colorToCss(sky.mid) + " 46%, " +
       colorToCss(sky.bot) + " 100%)";
 
+    // ★ 追加：theme-color を空の上端色に追従
+    setThemeColorSoft(sky.top, nowMs);
+
     var nightOpacity = getNightOpacity(phase);
     starsEl.style.opacity = String(nightOpacity);
 
@@ -1280,7 +1327,10 @@
 
   // ★ source/session を常に保存（PWA復元用）
   try {
-    localStorage.setItem("vcs:lastQuery", "source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session));
+    localStorage.setItem(
+      "vcs:lastQuery",
+      "source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session)
+    );
   } catch(e) {}
 
   var apiUrl = apiBaseUrl + "?source=" + encodeURIComponent(source) + "&session=" + encodeURIComponent(session);
